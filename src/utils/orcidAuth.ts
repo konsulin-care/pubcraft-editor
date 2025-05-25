@@ -1,7 +1,7 @@
 
 // ORCID OAuth configuration
 const ORCID_CONFIG = {
-  CLIENT_ID: 'APP-XXXXXXXXXXXXXXXX', // Replace with your ORCID client ID
+  CLIENT_ID: 'APP-SCMLFEP77XSZI9FJ', // Updated with valid ORCID client ID
   SANDBOX_URL: 'https://sandbox.orcid.org/oauth/authorize',
   PRODUCTION_URL: 'https://orcid.org/oauth/authorize',
   TOKEN_URL: 'https://orcid.org/oauth/token',
