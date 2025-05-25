@@ -3,13 +3,14 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { handleOrcidCallback } from '@/utils/orcidAuth';
+import { handleGitHubCallback } from '@/utils/githubAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 const AuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, linkGitHub, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processing authentication...');
@@ -29,23 +30,55 @@ const AuthCallback = () => {
           throw new Error('Missing authorization code or state parameter');
         }
 
-        setMessage('Exchanging authorization code...');
-        const userData = await handleOrcidCallback(code, state);
+        // Check if this is a GitHub callback (GitHub state is stored in sessionStorage)
+        const githubState = sessionStorage.getItem('github_state');
+        const orcidState = localStorage.getItem('orcid_state');
 
-        setMessage('Login successful! Redirecting...');
-        setStatus('success');
-        
-        login(userData);
-        
-        toast({
-          title: "Welcome!",
-          description: `Successfully logged in as ${userData.name}`,
-        });
+        if (githubState && state === githubState) {
+          // Handle GitHub OAuth callback
+          if (!isAuthenticated) {
+            throw new Error('You must be logged in with ORCID to link GitHub');
+          }
 
-        // Redirect to editor after successful login
-        setTimeout(() => {
-          navigate('/editor', { replace: true });
-        }, 2000);
+          setMessage('Linking GitHub account...');
+          const githubData = await handleGitHubCallback(code, state);
+          
+          linkGitHub(githubData);
+          setMessage('GitHub account linked successfully!');
+          setStatus('success');
+          
+          toast({
+            title: "GitHub Linked!",
+            description: `Successfully linked GitHub account @${githubData.username}`,
+          });
+
+          // Redirect back to editor
+          setTimeout(() => {
+            navigate('/editor', { replace: true });
+          }, 2000);
+
+        } else if (orcidState && state === orcidState) {
+          // Handle ORCID OAuth callback
+          setMessage('Exchanging authorization code...');
+          const userData = await handleOrcidCallback(code, state);
+
+          setMessage('Login successful! Redirecting...');
+          setStatus('success');
+          
+          login(userData);
+          
+          toast({
+            title: "Welcome!",
+            description: `Successfully logged in as ${userData.name}`,
+          });
+
+          // Redirect to editor after successful login
+          setTimeout(() => {
+            navigate('/editor', { replace: true });
+          }, 2000);
+        } else {
+          throw new Error('Invalid authentication state');
+        }
 
       } catch (error) {
         console.error('Authentication callback error:', error);
@@ -54,19 +87,23 @@ const AuthCallback = () => {
         
         toast({
           title: "Authentication Failed",
-          description: "There was an error processing your ORCID login. Please try again.",
+          description: "There was an error processing your authentication. Please try again.",
           variant: "destructive"
         });
 
-        // Redirect back to login after error
+        // Redirect back to appropriate page after error
         setTimeout(() => {
-          navigate('/', { replace: true });
+          if (isAuthenticated) {
+            navigate('/editor', { replace: true });
+          } else {
+            navigate('/', { replace: true });
+          }
         }, 3000);
       }
     };
 
     processCallback();
-  }, [searchParams, navigate, login, toast]);
+  }, [searchParams, navigate, login, linkGitHub, isAuthenticated, toast]);
 
   const getStatusIcon = () => {
     switch (status) {
@@ -105,7 +142,7 @@ const AuthCallback = () => {
         {status === 'loading' && (
           <div className="bg-white p-6 rounded-lg shadow-sm border">
             <p className="text-sm text-gray-500">
-              Please wait while we securely process your ORCID authentication...
+              Please wait while we securely process your authentication...
             </p>
           </div>
         )}

@@ -2,6 +2,8 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
+import GitHubStatusBanner from '@/components/GitHubStatusBanner';
+import LinkGitHubButton from '@/components/LinkGitHubButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { FileText, Save, Download, Share2, BookOpen } from 'lucide-react';
 
 const Editor = () => {
-  const { user } = useAuth();
+  const { user, isGitHubLinked } = useAuth();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -24,6 +26,8 @@ const Editor = () => {
             Your secure, ORCID-authenticated environment for scholarly writing.
           </p>
         </div>
+
+        <GitHubStatusBanner />
 
         <div className="grid lg:grid-cols-4 gap-6">
           <div className="lg:col-span-3">
@@ -92,6 +96,12 @@ const Editor = () => {
                       <p className="text-sm text-gray-900">{user.email}</p>
                     </div>
                   )}
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">GitHub</label>
+                    <div className="mt-1">
+                      <LinkGitHubButton size="sm" />
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -108,9 +118,13 @@ const Editor = () => {
                   <FileText className="h-4 w-4 mr-2" />
                   New Document
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  disabled={!isGitHubLinked}
+                >
                   <Share2 className="h-4 w-4 mr-2" />
-                  Collaborate
+                  {isGitHubLinked ? 'Collaborate' : 'Link GitHub to Collaborate'}
                 </Button>
                 <Button variant="outline" className="w-full justify-start">
                   <Download className="h-4 w-4 mr-2" />

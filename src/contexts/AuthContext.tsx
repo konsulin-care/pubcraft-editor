@@ -9,12 +9,21 @@ interface User {
   accessToken: string;
 }
 
+interface GitHubAccount {
+  username: string;
+  token: string;
+}
+
 interface AuthContextType {
   user: User | null;
+  github: GitHubAccount | null;
   isAuthenticated: boolean;
+  isGitHubLinked: boolean;
   isLoading: boolean;
   login: (userData: User) => void;
   logout: () => void;
+  linkGitHub: (githubData: GitHubAccount) => void;
+  unlinkGitHub: () => void;
   checkAuthStatus: () => void;
 }
 
@@ -29,6 +38,7 @@ const STORAGE_KEYS = {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [github, setGitHub] = useState<GitHubAccount | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const checkAuthStatus = () => {
@@ -64,9 +74,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
+    setGitHub(null); // Clear GitHub data on logout
     localStorage.removeItem(STORAGE_KEYS.USER);
     localStorage.removeItem(STORAGE_KEYS.LOGIN_TIME);
     localStorage.removeItem(STORAGE_KEYS.CODE_VERIFIER);
+  };
+
+  const linkGitHub = (githubData: GitHubAccount) => {
+    setGitHub(githubData);
+    console.log('GitHub account linked:', githubData.username);
+  };
+
+  const unlinkGitHub = () => {
+    setGitHub(null);
+    console.log('GitHub account unlinked');
   };
 
   useEffect(() => {
@@ -78,15 +99,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const isAuthenticated = !!user;
+  const isGitHubLinked = !!github;
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        github,
         isAuthenticated,
+        isGitHubLinked,
         isLoading,
         login,
         logout,
+        linkGitHub,
+        unlinkGitHub,
         checkAuthStatus
       }}
     >
