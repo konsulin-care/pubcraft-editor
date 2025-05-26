@@ -1,11 +1,10 @@
 
-import React, { useRef, useEffect, useState } from 'react';
-import { Editor } from '@toast-ui/react-editor';
+import React, { useState, useEffect } from 'react';
+import MDEditor from '@uiw/react-md-editor';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit3, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import '@toast-ui/editor/dist/toastui-editor.css';
 
 interface MarkdownEditorProps {
   initialValue?: string;
@@ -18,14 +17,13 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   onChange,
   onSave 
 }) => {
-  const editorRef = useRef<Editor>(null);
+  const [markdown, setMarkdown] = useState(initialValue);
   const { toast } = useToast();
 
-  const handleChange = () => {
-    if (editorRef.current) {
-      const markdown = editorRef.current.getInstance().getMarkdown();
-      onChange(markdown);
-    }
+  const handleChange = (value?: string) => {
+    const newValue = value || '';
+    setMarkdown(newValue);
+    onChange(newValue);
   };
 
   const handleSave = () => {
@@ -51,6 +49,11 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     return () => document.removeEventListener('keydown', handleKeydown);
   }, [onSave]);
 
+  // Update internal state when initialValue changes
+  useEffect(() => {
+    setMarkdown(initialValue);
+  }, [initialValue]);
+
   return (
     <Card className="h-full">
       <CardHeader>
@@ -67,22 +70,13 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       </CardHeader>
       <CardContent className="p-0">
         <div className="h-[600px]">
-          <Editor
-            ref={editorRef}
-            initialValue={initialValue}
-            previewStyle="tab"
-            height="600px"
-            initialEditType="markdown"
-            useCommandShortcut={true}
+          <MDEditor
+            value={markdown}
             onChange={handleChange}
-            toolbarItems={[
-              ['heading', 'bold', 'italic', 'strike'],
-              ['hr', 'quote'],
-              ['ul', 'ol', 'task', 'indent', 'outdent'],
-              ['table', 'image', 'link'],
-              ['code', 'codeblock'],
-              ['scrollSync']
-            ]}
+            height={600}
+            preview="edit"
+            hideToolbar={false}
+            visibleDragBar={false}
           />
         </div>
       </CardContent>
