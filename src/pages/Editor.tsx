@@ -6,6 +6,7 @@ import GitHubStatusBanner from '@/components/GitHubStatusBanner';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import MetadataEditor from '@/components/MetadataEditor';
 import LivePreview from '@/components/LivePreview';
+import GitHubSaveButton from '@/components/GitHubSaveButton';
 import { Button } from '@/components/ui/button';
 import { useAutosave, loadDraft, clearDraft, type Draft } from '@/utils/storage';
 import { useToast } from '@/hooks/use-toast';
@@ -91,6 +92,10 @@ const Editor = () => {
                   Last saved: {new Date(lastSaved).toLocaleTimeString()}
                 </div>
               )}
+              <GitHubSaveButton 
+                markdown={markdown}
+                metadata={metadata}
+              />
               <Button variant="outline" onClick={handleClearDraft}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Clear Draft
