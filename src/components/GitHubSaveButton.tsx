@@ -22,9 +22,16 @@ import { Github, Save, Upload, ExternalLink } from 'lucide-react';
 interface GitHubSaveButtonProps {
   markdown: string;
   metadata: Metadata;
+  disabled?: boolean;
+  onSaveSuccess?: () => void;
 }
 
-const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({ markdown, metadata }) => {
+const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({ 
+  markdown, 
+  metadata, 
+  disabled = false,
+  onSaveSuccess 
+}) => {
   const { user, github, isGitHubLinked } = useAuth();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
@@ -127,6 +134,9 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({ markdown, metadata 
         description: "Your submission has been submitted for review!",
       });
 
+      // Call success callback to mark draft as synced
+      onSaveSuccess?.();
+
     } catch (error) {
       console.error('GitHub save error:', error);
       toast({
@@ -146,9 +156,9 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({ markdown, metadata 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="default" size="sm">
+        <Button variant="default" size="sm" disabled={disabled}>
           <Github className="h-4 w-4 mr-2" />
-          Save to GitHub
+          {disabled ? 'Offline' : 'Save to GitHub'}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">

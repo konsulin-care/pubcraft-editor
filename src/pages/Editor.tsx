@@ -3,14 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import GitHubStatusBanner from '@/components/GitHubStatusBanner';
+import InstallPrompt from '@/components/InstallPrompt';
+import OfflineIndicator from '@/components/OfflineIndicator';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import MetadataEditor from '@/components/MetadataEditor';
 import LivePreview from '@/components/LivePreview';
 import GitHubSaveButton from '@/components/GitHubSaveButton';
 import { Button } from '@/components/ui/button';
-import { useAutosave, loadDraft, clearDraft, type Draft } from '@/utils/storage';
+import { useAutosave, loadDraft, clearDraft, markDraftSynced, type Draft } from '@/utils/storage';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Clock } from 'lucide-react';
+import { Trash2, Clock, Wifi } from 'lucide-react';
 
 const Editor = () => {
   const { user } = useAuth();
@@ -23,6 +25,8 @@ const Editor = () => {
     abstract: ''
   });
   const [lastSaved, setLastSaved] = useState<string>('');
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [hasUnsyncedChanges, setHasUnsyncedChanges] = useState(false);
 
   // Auto-save hook
   useAutosave(markdown, metadata);
@@ -34,6 +38,7 @@ const Editor = () => {
       setMarkdown(draft.markdown);
       setMetadata(draft.metadata);
       setLastSaved(draft.updatedAt);
+      setHasUnsyncedChanges(draft.dirty || false);
       toast({
         title: "Draft Loaded",
         description: "Your previous work has been restored.",
@@ -48,6 +53,37 @@ const Editor = () => {
     }
   }, [user?.name, metadata.author]);
 
+  // Handle online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      const draft = loadDraft();
+      if (draft?.dirty) {
+        setHasUnsyncedChanges(true);
+        toast({
+          title: "Back Online",
+          description: "You have unsynced changes. Consider saving to GitHub.",
+        });
+      }
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast({
+        title: "You're Offline",
+        description: "Your work will be saved locally.",
+      });
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [toast]);
+
   const handleClearDraft = () => {
     if (window.confirm('Are you sure you want to clear your draft? This action cannot be undone.')) {
       clearDraft();
@@ -58,6 +94,7 @@ const Editor = () => {
         abstract: ''
       });
       setLastSaved('');
+      setHasUnsyncedChanges(false);
       toast({
         title: "Draft Cleared",
         description: "Your draft has been cleared.",
@@ -68,6 +105,11 @@ const Editor = () => {
   const handleManualSave = () => {
     const now = new Date().toISOString();
     setLastSaved(now);
+  };
+
+  const handleGitHubSaveSuccess = () => {
+    markDraftSynced();
+    setHasUnsyncedChanges(false);
   };
 
   return (
@@ -90,11 +132,18 @@ const Editor = () => {
                 <div className="flex items-center text-sm text-gray-500">
                   <Clock className="h-4 w-4 mr-1" />
                   Last saved: {new Date(lastSaved).toLocaleTimeString()}
+                  {hasUnsyncedChanges && (
+                    <span className="ml-2 text-orange-600">
+                      (Unsynced)
+                    </span>
+                  )}
                 </div>
               )}
               <GitHubSaveButton 
                 markdown={markdown}
                 metadata={metadata}
+                disabled={!isOnline}
+                onSaveSuccess={handleGitHubSaveSuccess}
               />
               <Button variant="outline" onClick={handleClearDraft}>
                 <Trash2 className="h-4 w-4 mr-2" />
@@ -103,6 +152,8 @@ const Editor = () => {
             </div>
           </div>
           
+          <InstallPrompt />
+          <OfflineIndicator />
           <GitHubStatusBanner />
         </div>
 
