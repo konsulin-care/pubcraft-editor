@@ -2,6 +2,7 @@
 // ORCID OAuth configuration
 const ORCID_CONFIG = {
   CLIENT_ID: import.meta.env.VITE_ORCID_CLIENT_ID,
+  SANDBOX_CLIENT_ID: import.meta.env.VITE_ORCID_SANDBOX_CLIENT_ID,
   SANDBOX_URL: import.meta.env.VITE_ORCID_SANDBOX_URL,
   PRODUCTION_URL: import.meta.env.VITE_ORCID_PRODUCTION_URL,
   TOKEN_URL: import.meta.env.VITE_ORCID_TOKEN_URL,
@@ -13,6 +14,7 @@ const ORCID_CONFIG = {
 // Use sandbox for development, production for live app
 const isProduction = process.env.NODE_ENV === 'production';
 const AUTHORIZE_URL = isProduction ? ORCID_CONFIG.PRODUCTION_URL : ORCID_CONFIG.SANDBOX_URL;
+const CLIENT_ID = isProduction ? ORCID_CONFIG.CLIENT_ID : ORCID_CONFIG.SANDBOX_CLIENT_ID;
 
 // PKCE utility functions
 function generateCodeVerifier(): string {
@@ -51,7 +53,7 @@ export async function initiateOrcidLogin(): Promise<void> {
     localStorage.setItem('orcid_state', state);
 
     const params = new URLSearchParams({
-      client_id: ORCID_CONFIG.CLIENT_ID,
+      client_id: CLIENT_ID,
       response_type: 'code',
       scope: ORCID_CONFIG.SCOPE,
       redirect_uri: ORCID_CONFIG.REDIRECT_URI,
@@ -89,7 +91,7 @@ export async function handleOrcidCallback(code: string, state: string): Promise<
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        client_id: ORCID_CONFIG.CLIENT_ID,
+        client_id: CLIENT_ID,
         grant_type: 'authorization_code',
         code: code,
         redirect_uri: ORCID_CONFIG.REDIRECT_URI,
