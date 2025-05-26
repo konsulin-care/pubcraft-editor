@@ -16,6 +16,9 @@ const isProduction = process.env.NODE_ENV === 'production';
 const AUTHORIZE_URL = isProduction ? ORCID_CONFIG.PRODUCTION_URL : ORCID_CONFIG.SANDBOX_URL;
 const CLIENT_ID = isProduction ? ORCID_CONFIG.CLIENT_ID : ORCID_CONFIG.SANDBOX_CLIENT_ID;
 
+// Debounce guard to prevent double call
+let alreadyCalled = false;
+
 // PKCE utility functions
 function generateCodeVerifier(): string {
   const array = new Uint8Array(32);
@@ -71,6 +74,8 @@ export async function initiateOrcidLogin(): Promise<void> {
 }
 
 export async function handleOrcidCallback(code: string, state: string): Promise<any> {
+  if (alreadyCalled) return;
+  alreadyCalled = true;
   try {
     // Verify state parameter
     const storedState = localStorage.getItem('orcid_state');
