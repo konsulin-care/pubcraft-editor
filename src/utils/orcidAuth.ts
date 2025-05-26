@@ -1,13 +1,13 @@
 
 // ORCID OAuth configuration
 const ORCID_CONFIG = {
-  CLIENT_ID: 'APP-SCMLFEP77XSZI9FJ', // Updated with valid ORCID client ID
-  SANDBOX_URL: 'https://sandbox.orcid.org/oauth/authorize',
-  PRODUCTION_URL: 'https://orcid.org/oauth/authorize',
-  TOKEN_URL: 'https://orcid.org/oauth/token',
-  API_URL: 'https://pub.orcid.org/v3.0',
-  REDIRECT_URI: `${window.location.origin}/auth/callback`,
-  SCOPE: '/authenticate'
+  CLIENT_ID: import.meta.env.VITE_ORCID_CLIENT_ID,
+  SANDBOX_URL: import.meta.env.VITE_ORCID_SANDBOX_URL,
+  PRODUCTION_URL: import.meta.env.VITE_ORCID_PRODUCTION_URL,
+  TOKEN_URL: import.meta.env.VITE_ORCID_TOKEN_URL,
+  API_URL: import.meta.env.VITE_ORCID_API_URL,
+  REDIRECT_URI: import.meta.env.VITE_ORCID_REDIRECT_URI,
+  SCOPE: import.meta.env.VITE_ORCID_SCOPE
 };
 
 // Use sandbox for development, production for live app
