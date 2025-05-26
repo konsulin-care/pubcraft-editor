@@ -99,9 +99,9 @@ npm run preview
 
 ## 🐳 Docker Deployment
 
-### Option 1: Using Docker Compose (Recommended)
+### Option 1: Using Pre-built Image (Recommended)
 
-1. **Basic deployment:**
+1. **Quick deployment with Docker Compose:**
 ```bash
 cp .env.template .env
 # Edit .env with your configuration
@@ -113,7 +113,7 @@ docker-compose up -d
 docker-compose --profile production up -d
 ```
 
-### Option 2: Using Docker directly
+### Option 2: Building Locally
 
 1. **Build the image:**
 ```bash
@@ -147,20 +147,22 @@ docker run -d \
 
 ```
 scholarly-editor/
+├── .github/
+│   └── workflows/           # GitHub Actions CI/CD
 ├── public/
-│   ├── manifest.json          # PWA manifest
-│   └── sw.js                  # Service worker
+│   ├── manifest.json        # PWA manifest
+│   └── sw.js                # Service worker
 ├── src/
-│   ├── components/           # React components
-│   ├── contexts/            # React contexts
-│   ├── hooks/               # Custom hooks
-│   ├── pages/               # Page components
-│   ├── utils/               # Utility functions
-│   └── lib/                 # Library configurations
-├── .env.template            # Environment template
-├── Dockerfile              # Docker configuration
-├── docker-compose.yml      # Docker Compose configuration
-└── README.md               # This file
+│   ├── components/          # React components
+│   ├── contexts/           # React contexts
+│   ├── hooks/              # Custom hooks
+│   ├── pages/              # Page components
+│   ├── utils/              # Utility functions
+│   └── lib/                # Library configurations
+├── .env.template           # Environment template
+├── Dockerfile             # Docker configuration
+├── docker-compose.yml     # Docker Compose configuration
+└── README.md              # This file
 ```
 
 ## 🚀 Deployment Options
@@ -171,23 +173,39 @@ The easiest way to deploy is using the Lovable platform:
 1. Click the "Publish" button in the Lovable editor
 2. Your app will be deployed automatically with a custom URL
 
-### 2. Vercel
+### 2. Docker Hub (Production Ready)
+
+The application is automatically built and published to Docker Hub:
+- Image: `lamuri/pubcraft-editor:latest`
+- Multi-architecture support (AMD64, ARM64)
+- Automatic builds on commits and tags
+
+### 3. Vercel
 
 ```bash
 npm install -g vercel
 vercel
 ```
 
-### 3. Netlify
+### 4. Netlify
 
 ```bash
 npm run build
 # Upload the 'dist' folder to Netlify
 ```
 
-### 4. Docker Production
+## 🔄 CI/CD Pipeline
 
-Use the provided Docker Compose configuration with nginx proxy for production deployment.
+The project includes automated GitHub Actions workflows:
+
+- **Docker Build**: Automatically builds and pushes Docker images on:
+  - Pull requests to main branch (build only)
+  - Commits to main branch
+  - Git tags (versioned releases)
+  - Manual triggers
+
+- **Multi-platform Support**: Images are built for both AMD64 and ARM64 architectures
+- **Security Scanning**: Automated vulnerability scanning with Docker Scout
 
 ## 🔍 Development Commands
 
@@ -224,3 +242,4 @@ If you encounter any issues:
 - [PWA Documentation](https://web.dev/progressive-web-apps/)
 - [Vite Documentation](https://vitejs.dev/)
 - [React Documentation](https://reactjs.org/)
+- [Docker Hub Repository](https://hub.docker.com/r/lamuri/pubcraft-editor)
