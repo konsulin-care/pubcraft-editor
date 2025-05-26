@@ -1,14 +1,14 @@
 
 // ORCID OAuth configuration
 const ORCID_CONFIG = {
-  CLIENT_ID: import.meta.env.VITE_ORCID_CLIENT_ID,
-  SANDBOX_CLIENT_ID: import.meta.env.VITE_ORCID_SANDBOX_CLIENT_ID,
-  SANDBOX_URL: import.meta.env.VITE_ORCID_SANDBOX_URL,
-  PRODUCTION_URL: import.meta.env.VITE_ORCID_PRODUCTION_URL,
-  TOKEN_URL: import.meta.env.VITE_ORCID_TOKEN_URL,
-  API_URL: import.meta.env.VITE_ORCID_API_URL,
-  REDIRECT_URI: import.meta.env.VITE_ORCID_REDIRECT_URI,
-  SCOPE: import.meta.env.VITE_ORCID_SCOPE
+  CLIENT_ID: window.env.VITE_ORCID_CLIENT_ID,
+  SANDBOX_CLIENT_ID: window.env.VITE_ORCID_SANDBOX_CLIENT_ID,
+  SANDBOX_URL: window.env.VITE_ORCID_SANDBOX_URL,
+  PRODUCTION_URL: window.env.VITE_ORCID_PRODUCTION_URL,
+  TOKEN_URL: window.env.VITE_ORCID_TOKEN_URL,
+  API_URL: window.env.VITE_ORCID_API_URL,
+  REDIRECT_URI: window.env.VITE_ORCID_REDIRECT_URI,
+  SCOPE: window.env.VITE_ORCID_SCOPE
 };
 
 // Use sandbox for development, production for live app

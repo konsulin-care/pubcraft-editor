@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# Generate env.js dynamically
+cat <<EOF > /app/dist/env.js
+window.env = {
+  VITE_ORCID_CLIENT_ID: "${VITE_ORCID_CLIENT_ID}",
+  VITE_ORCID_PRODUCTION_URL: "${VITE_ORCID_PRODUCTION_URL}",
+  VITE_ORCID_TOKEN_URL: "${VITE_ORCID_TOKEN_URL}",
+  VITE_ORCID_API_URL: "${VITE_ORCID_API_URL}",
+  VITE_ORCID_REDIRECT_URL: "${VITE_ORCID_REDIRECT_URL}",
+  VITE_ORCID_SCOPE: "${VITE_ORCID_SCOPE}"
+};
+EOF
+
+exec "$@"
