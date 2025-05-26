@@ -1,28 +1,24 @@
+# BUILD
+FROM node:20-alpine AS builder
 
-# Use Node.js 18 Alpine image
-FROM node:20-alpine
-
-# Set working directory
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
-COPY bun.lockb ./
+RUN npm ci
 
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy source code
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Use `npx serve` to serve static files
+# PRODUCTION
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install static file server
 RUN npm install -g serve
 
-# Expose port
-EXPOSE 8080
+# Copy built assets only
+COPY --from=builder /app/dist ./dist
 
-# Start the application
+EXPOSE 8080
 CMD ["serve", "-s", "dist", "-l", "8080"]
