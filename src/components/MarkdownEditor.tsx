@@ -76,7 +76,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             height={600}
             preview="edit"
             hideToolbar={false}
-            visibleDragBar={false}
+            visibleDragbar={false}
           />
         </div>
       </CardContent>
