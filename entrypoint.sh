@@ -3,6 +3,7 @@
 # Generate env.js dynamically
 cat <<EOF > /app/dist/env.js
 window.env = {
+  VITE_GITHUB_CLIENT_ID: "${VITE_GITHUB_CLIENT_ID}",
   VITE_ORCID_CLIENT_ID: "${VITE_ORCID_CLIENT_ID}",
   VITE_ORCID_PRODUCTION_URL: "${VITE_ORCID_PRODUCTION_URL}",
   VITE_ORCID_TOKEN_URL: "${VITE_ORCID_TOKEN_URL}",
