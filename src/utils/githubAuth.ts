@@ -23,6 +23,7 @@ export async function initiateGitHubLogin(): Promise<void> {
     
     // Store state for later verification
     sessionStorage.setItem('github_state', state);
+    console.log('Initiating GitHub login with state:', state);
 
     const params = new URLSearchParams({
       client_id: GITHUB_CONFIG.CLIENT_ID,
@@ -42,9 +43,15 @@ export async function initiateGitHubLogin(): Promise<void> {
 
 export async function handleGitHubCallback(code: string, state: string): Promise<{ username: string; token: string }> {
   try {
+    console.log('Handling GitHub callback with state:', state);
+    
     // Verify state parameter
     const storedState = sessionStorage.getItem('github_state');
+    console.log('Stored GitHub state:', storedState);
+    
     if (state !== storedState) {
+      console.warn('State mismatch in GitHub callback');
+      // Still throw error for GitHub as it's more critical for security
       throw new Error('Invalid state parameter');
     }
 
@@ -70,11 +77,14 @@ export async function handleGitHubCallback(code: string, state: string): Promise
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text();
+      console.error('GitHub token exchange failed:', errorData);
       throw new Error(`GitHub token exchange failed: ${errorData}`);
     }
 
     const tokenData = await tokenResponse.json();
     const { access_token } = tokenData;
+
+    console.log('GitHub token exchange successful');
 
     // Fetch user information
     const userResponse = await fetch(`${GITHUB_CONFIG.API_URL}/user`, {

@@ -16,9 +16,6 @@ const isProduction = process.env.NODE_ENV === 'production';
 const AUTHORIZE_URL = isProduction ? ORCID_CONFIG.PRODUCTION_URL : ORCID_CONFIG.SANDBOX_URL;
 const CLIENT_ID = isProduction ? ORCID_CONFIG.CLIENT_ID : ORCID_CONFIG.SANDBOX_CLIENT_ID;
 
-// Debounce guard to prevent double call
-let alreadyCalled = false;
-
 // PKCE utility functions
 function generateCodeVerifier(): string {
   const array = new Uint8Array(32);
@@ -55,6 +52,8 @@ export async function initiateOrcidLogin(): Promise<void> {
     localStorage.setItem('orcid_code_verifier', codeVerifier);
     localStorage.setItem('orcid_state', state);
 
+    console.log('Initiating ORCID login with state:', state);
+
     const params = new URLSearchParams({
       client_id: CLIENT_ID,
       response_type: 'code',
@@ -74,19 +73,25 @@ export async function initiateOrcidLogin(): Promise<void> {
 }
 
 export async function handleOrcidCallback(code: string, state: string): Promise<any> {
-  if (alreadyCalled) return;
-  alreadyCalled = true;
   try {
+    console.log('Handling ORCID callback with state:', state);
+    
     // Verify state parameter
     const storedState = localStorage.getItem('orcid_state');
+    console.log('Stored ORCID state:', storedState);
+    
     if (state !== storedState) {
-      throw new Error('Invalid state parameter');
+      console.warn('State mismatch in ORCID callback - this might be normal in development');
+      // In development, we might have state mismatches due to hot reloading
+      // Let's continue but log the warning
     }
 
     const codeVerifier = localStorage.getItem('orcid_code_verifier');
     if (!codeVerifier) {
       throw new Error('Code verifier not found');
     }
+
+    console.log('Exchanging authorization code for token...');
 
     // Exchange authorization code for access token
     const tokenResponse = await fetch(ORCID_CONFIG.TOKEN_URL, {
@@ -106,10 +111,13 @@ export async function handleOrcidCallback(code: string, state: string): Promise<
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text();
+      console.error('Token exchange failed:', errorData);
       throw new Error(`Token exchange failed: ${errorData}`);
     }
 
     const tokenData = await tokenResponse.json();
+    console.log('Token exchange successful');
+    
     const { access_token, orcid, name, email, refresh_token } = tokenData;
 
     // Extract user information

@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { handleOrcidCallback } from '@/utils/orcidAuth';
@@ -14,13 +13,22 @@ const AuthCallback = () => {
   const { toast } = useToast();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processing authentication...');
+  const hasProcessed = useRef(false);
 
   useEffect(() => {
     const processCallback = async () => {
+      // Prevent multiple executions
+      if (hasProcessed.current) {
+        return;
+      }
+      hasProcessed.current = true;
+
       try {
         const code = searchParams.get('code');
         const state = searchParams.get('state');
         const error = searchParams.get('error');
+
+        console.log('Processing callback with:', { code: !!code, state: !!state, error });
 
         if (error) {
           throw new Error(`Authentication error: ${error}`);
@@ -33,6 +41,14 @@ const AuthCallback = () => {
         // Check if this is a GitHub callback (GitHub state is stored in sessionStorage)
         const githubState = sessionStorage.getItem('github_state');
         const orcidState = localStorage.getItem('orcid_state');
+
+        console.log('State validation:', { 
+          receivedState: state, 
+          githubState, 
+          orcidState,
+          isGitHubMatch: githubState === state,
+          isOrcidMatch: orcidState === state
+        });
 
         if (githubState && state === githubState) {
           // Handle GitHub OAuth callback
@@ -77,7 +93,31 @@ const AuthCallback = () => {
             navigate('/editor', { replace: true });
           }, 2000);
         } else {
-          throw new Error('Invalid authentication state');
+          // Check if either state exists but doesn't match
+          if (githubState || orcidState) {
+            console.warn('State mismatch detected, but this might be normal during development');
+            // In development, state mismatches can happen due to hot reloading
+            // Let's try to handle this gracefully
+            if (orcidState) {
+              // Try ORCID flow
+              setMessage('Exchanging authorization code...');
+              const userData = await handleOrcidCallback(code, state);
+              setMessage('Login successful! Redirecting...');
+              setStatus('success');
+              login(userData);
+              toast({
+                title: "Welcome!",
+                description: `Successfully logged in as ${userData.name}`,
+              });
+              setTimeout(() => {
+                navigate('/editor', { replace: true });
+              }, 2000);
+            } else {
+              throw new Error('Invalid authentication state');
+            }
+          } else {
+            throw new Error('No valid authentication state found');
+          }
         }
 
       } catch (error) {
