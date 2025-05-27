@@ -7,16 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { FileText, User, BookOpen, Code } from 'lucide-react';
 import * as yaml from 'js-yaml';
-
-interface Metadata {
-  title: string;
-  author: string;
-  abstract: string;
-}
+import { ExtendedMetadata } from '@/types/metadata';
 
 interface MetadataEditorProps {
-  metadata: Metadata;
-  onChange: (metadata: Metadata) => void;
+  metadata: ExtendedMetadata;
+  onChange: (metadata: ExtendedMetadata) => void;
 }
 
 const MetadataEditor: React.FC<MetadataEditorProps> = ({ metadata, onChange }) => {
@@ -24,7 +19,7 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({ metadata, onChange }) =
   const [yamlText, setYamlText] = useState('');
   const [yamlError, setYamlError] = useState('');
 
-  const handleFieldChange = (field: keyof Metadata, value: string) => {
+  const handleFieldChange = (field: keyof ExtendedMetadata, value: any) => {
     onChange({
       ...metadata,
       [field]: value
@@ -33,7 +28,6 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({ metadata, onChange }) =
 
   const toggleYamlView = () => {
     if (!showYamlView) {
-      // Convert current metadata to YAML
       try {
         const yamlString = yaml.dump(metadata, { indent: 2 });
         setYamlText(yamlString);
@@ -42,20 +36,25 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({ metadata, onChange }) =
         setYamlError('Error converting to YAML');
       }
     } else {
-      // Parse YAML back to metadata
       try {
-        const parsed = yaml.load(yamlText) as Metadata;
+        const parsed = yaml.load(yamlText) as ExtendedMetadata;
         if (parsed && typeof parsed === 'object') {
-          onChange({
+          // Ensure required fields have defaults
+          const processedMetadata: ExtendedMetadata = {
             title: parsed.title || '',
             author: parsed.author || '',
-            abstract: parsed.abstract || ''
-          });
+            abstract: parsed.abstract || '',
+            subtitle: parsed.subtitle,
+            funding: parsed.funding,
+            keywords: parsed.keywords,
+            affiliations: parsed.affiliations
+          };
+          onChange(processedMetadata);
         }
         setYamlError('');
       } catch (error) {
         setYamlError('Invalid YAML syntax');
-        return; // Don't toggle if there's an error
+        return;
       }
     }
     setShowYamlView(!showYamlView);
@@ -69,6 +68,15 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({ metadata, onChange }) =
     } catch (error) {
       setYamlError('Invalid YAML syntax');
     }
+  };
+
+  const getAuthorString = () => {
+    if (typeof metadata.author === 'string') {
+      return metadata.author;
+    }
+    return Array.isArray(metadata.author) 
+      ? metadata.author.map(a => a.name).join(', ')
+      : '';
   };
 
   return (
@@ -92,12 +100,30 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({ metadata, onChange }) =
       <CardContent className="space-y-4">
         {showYamlView ? (
           <div className="space-y-2">
-            <Label>Raw YAML</Label>
+            <Label>Extended YAML Metadata</Label>
             <Textarea
               value={yamlText}
               onChange={(e) => handleYamlChange(e.target.value)}
-              className="min-h-[300px] font-mono text-sm"
-              placeholder="title: Your Article Title&#10;author: Your Name&#10;abstract: Your abstract here..."
+              className="min-h-[400px] font-mono text-sm"
+              placeholder={`title: Your Article Title
+subtitle: Your Subtitle
+author:
+  - name: Author Name
+    corresponding: true
+    email: email@example.com
+    affiliations:
+      - ref: inst1
+    roles: [conceptualization, methodology]
+abstract: Your abstract here
+funding: "Funding information"
+keywords:
+  - keyword1
+  - keyword2
+affiliations:
+  - id: inst1
+    name: Institution Name
+    city: City
+    country: Country`}
             />
             {yamlError && (
               <p className="text-sm text-red-600">{yamlError}</p>
@@ -118,6 +144,18 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({ metadata, onChange }) =
               />
             </div>
 
+            {metadata.subtitle !== undefined && (
+              <div className="space-y-2">
+                <Label htmlFor="subtitle">Subtitle</Label>
+                <Input
+                  id="subtitle"
+                  value={metadata.subtitle || ''}
+                  onChange={(e) => handleFieldChange('subtitle', e.target.value)}
+                  placeholder="Enter subtitle..."
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="author" className="flex items-center">
                 <User className="h-4 w-4 mr-2" />
@@ -125,10 +163,13 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({ metadata, onChange }) =
               </Label>
               <Input
                 id="author"
-                value={metadata.author}
+                value={getAuthorString()}
                 onChange={(e) => handleFieldChange('author', e.target.value)}
                 placeholder="Enter author name..."
               />
+              <p className="text-xs text-gray-500">
+                Use YAML view for advanced author metadata with affiliations
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -138,9 +179,34 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({ metadata, onChange }) =
                 value={metadata.abstract}
                 onChange={(e) => handleFieldChange('abstract', e.target.value)}
                 placeholder="Enter article abstract..."
-                className="min-h-[200px] resize-none"
+                className="min-h-[120px] resize-none"
               />
             </div>
+
+            {metadata.keywords && (
+              <div className="space-y-2">
+                <Label htmlFor="keywords">Keywords</Label>
+                <Input
+                  id="keywords"
+                  value={metadata.keywords.join(', ')}
+                  onChange={(e) => handleFieldChange('keywords', e.target.value.split(', ').filter(k => k.trim()))}
+                  placeholder="Enter keywords separated by commas..."
+                />
+              </div>
+            )}
+
+            {metadata.funding && (
+              <div className="space-y-2">
+                <Label htmlFor="funding">Funding</Label>
+                <Textarea
+                  id="funding"
+                  value={metadata.funding}
+                  onChange={(e) => handleFieldChange('funding', e.target.value)}
+                  placeholder="Enter funding information..."
+                  className="min-h-[60px] resize-none"
+                />
+              </div>
+            )}
           </>
         )}
       </CardContent>
