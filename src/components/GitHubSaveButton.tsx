@@ -18,13 +18,31 @@ import {
   type Metadata 
 } from '@/utils/github';
 import { Github, Save, Upload, ExternalLink } from 'lucide-react';
+import { ExtendedMetadata, AuthorMetadata } from '@/types/metadata';
 
 interface GitHubSaveButtonProps {
   markdown: string;
-  metadata: Metadata;
+  metadata: ExtendedMetadata;
   disabled?: boolean;
   onSaveSuccess?: () => void;
 }
+
+// Convert ExtendedMetadata to GitHub Metadata format
+const convertToGitHubMetadata = (metadata: ExtendedMetadata): Metadata => {
+  let authorString = '';
+  
+  if (typeof metadata.author === 'string') {
+    authorString = metadata.author;
+  } else if (Array.isArray(metadata.author)) {
+    authorString = metadata.author.map(auth => auth.name).join(', ');
+  }
+
+  return {
+    title: metadata.title,
+    author: authorString,
+    abstract: metadata.abstract
+  };
+};
 
 const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({ 
   markdown, 
@@ -81,10 +99,13 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
         throw new Error('Cannot access repository. Please check the owner/repo names and your permissions.');
       }
 
+      // Convert metadata to GitHub format
+      const githubMetadata = convertToGitHubMetadata(metadata);
+
       // Generate paths and content
       const submissionPath = getSubmissionPath(user.orcid);
       const branchName = getSubmissionBranch(user.orcid);
-      const content = generateMarkdownWithFrontmatter(metadata, markdown);
+      const content = generateMarkdownWithFrontmatter(githubMetadata, markdown);
       const commitMessage = `Add submission: ${metadata.title}`;
 
       // Create a new branch for the submission
@@ -123,7 +144,7 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
         head: branchName,
         base: 'main',
         title: `Submission: ${metadata.title}`,
-        body: generatePRBody(metadata),
+        body: generatePRBody(githubMetadata),
         token: github.token
       });
 

@@ -1,0 +1,123 @@
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { useAutosave, loadDraft, clearDraft, markDraftSynced } from '@/utils/storage';
+import { ExtendedMetadata, Reference } from '@/types/metadata';
+
+export const useEditorState = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  
+  const [markdown, setMarkdown] = useState('');
+  const [metadata, setMetadata] = useState<ExtendedMetadata>({
+    title: '',
+    author: user?.name || '',
+    abstract: ''
+  });
+  const [references, setReferences] = useState<Reference[]>([]);
+  const [lastSaved, setLastSaved] = useState<string>('');
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [hasUnsyncedChanges, setHasUnsyncedChanges] = useState(false);
+
+  // Auto-save hook
+  useAutosave(markdown, metadata, references);
+
+  // Load draft on component mount
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft) {
+      setMarkdown(draft.markdown);
+      setMetadata(draft.metadata);
+      setReferences(draft.references || []);
+      setLastSaved(draft.updatedAt);
+      setHasUnsyncedChanges(draft.dirty || false);
+      toast({
+        title: "Draft Loaded",
+        description: "Your previous work has been restored.",
+      });
+    }
+  }, [toast]);
+
+  // Update author when user data changes
+  useEffect(() => {
+    if (user?.name && !metadata.author) {
+      setMetadata(prev => ({ ...prev, author: user.name }));
+    }
+  }, [user?.name, metadata.author]);
+
+  // Handle online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      const draft = loadDraft();
+      if (draft?.dirty) {
+        setHasUnsyncedChanges(true);
+        toast({
+          title: "Back Online",
+          description: "You have unsynced changes. Consider saving to GitHub.",
+        });
+      }
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast({
+        title: "You're Offline",
+        description: "Your work will be saved locally.",
+      });
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [toast]);
+
+  const handleClearDraft = () => {
+    if (window.confirm('Are you sure you want to clear your draft? This action cannot be undone.')) {
+      clearDraft();
+      setMarkdown('');
+      setMetadata({
+        title: '',
+        author: user?.name || '',
+        abstract: ''
+      });
+      setReferences([]);
+      setLastSaved('');
+      setHasUnsyncedChanges(false);
+      toast({
+        title: "Draft Cleared",
+        description: "Your draft has been cleared.",
+      });
+    }
+  };
+
+  const handleManualSave = () => {
+    const now = new Date().toISOString();
+    setLastSaved(now);
+  };
+
+  const handleGitHubSaveSuccess = () => {
+    markDraftSynced();
+    setHasUnsyncedChanges(false);
+  };
+
+  return {
+    markdown,
+    metadata,
+    references,
+    lastSaved,
+    isOnline,
+    hasUnsyncedChanges,
+    setMarkdown,
+    setMetadata,
+    setReferences,
+    handleClearDraft,
+    handleManualSave,
+    handleGitHubSaveSuccess
+  };
+};
