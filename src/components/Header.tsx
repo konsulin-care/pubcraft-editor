@@ -43,7 +43,7 @@ const Header = () => {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <BookOpen className="h-8 w-8 text-blue-600 mr-3" />
-            <h1 className="text-xl font-bold text-gray-900">ScholarWrite</h1>
+            <h1 className="text-xl font-bold text-gray-900">PubCraft</h1>
           </div>
 
           <div className="flex items-center space-x-4">

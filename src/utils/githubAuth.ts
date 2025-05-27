@@ -91,7 +91,7 @@ export async function handleGitHubCallback(code: string, state: string): Promise
       headers: {
         'Accept': 'application/json',
         'Authorization': `Bearer ${access_token}`,
-        'User-Agent': 'ScholarWrite-App'
+        'User-Agent': 'PubCraft-App'
       }
     });
 
@@ -119,7 +119,7 @@ export async function validateGitHubToken(token: string): Promise<boolean> {
     const response = await fetch(`${GITHUB_CONFIG.API_URL}/user`, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'User-Agent': 'ScholarWrite-App'
+        'User-Agent': 'PubCraft-App'
       }
     });
     return response.ok;

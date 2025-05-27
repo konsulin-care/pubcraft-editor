@@ -176,7 +176,7 @@ ${metadata.abstract}
 
 ---
 
-This is an automated submission created via the ScholarWrite editor.`;
+This is an automated submission created via the PubCraft editor.`;
 }
 
 // Validate GitHub repository access

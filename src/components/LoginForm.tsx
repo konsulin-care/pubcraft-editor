@@ -31,7 +31,7 @@ const LoginForm = () => {
         <div className="text-center mb-12">
           <div className="flex items-center justify-center mb-6">
             <BookOpen className="h-12 w-12 text-blue-600 mr-3" />
-            <h1 className="text-4xl font-bold text-gray-900">ScholarWrite</h1>
+            <h1 className="text-4xl font-bold text-gray-900">PubCraft</h1>
           </div>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Your trusted companion for scholarly writing. Connect with ORCID to access 
