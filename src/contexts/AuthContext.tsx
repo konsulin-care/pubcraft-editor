@@ -32,6 +32,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const SESSION_TIMEOUT = 60 * 60 * 1000; // 1 hour
 const STORAGE_KEYS = {
   USER: 'orcid_user',
+  GITHUB: 'github_account',
   LOGIN_TIME: 'orcid_login_time',
   CODE_VERIFIER: 'orcid_code_verifier'
 };
@@ -44,15 +45,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const checkAuthStatus = () => {
     try {
       const storedUser = localStorage.getItem(STORAGE_KEYS.USER);
+      const storedGitHub = localStorage.getItem(STORAGE_KEYS.GITHUB);
       const loginTime = localStorage.getItem(STORAGE_KEYS.LOGIN_TIME);
+
+      console.log('Checking auth status:', { 
+        hasUser: !!storedUser, 
+        hasGitHub: !!storedGitHub, 
+        loginTime 
+      });
 
       if (storedUser && loginTime) {
         const timeDiff = Date.now() - parseInt(loginTime);
         
         if (timeDiff < SESSION_TIMEOUT) {
-          setUser(JSON.parse(storedUser));
+          const userData = JSON.parse(storedUser);
+          setUser(userData);
+          console.log('User restored from storage:', userData.name);
+          
+          // Restore GitHub account if available
+          if (storedGitHub) {
+            const githubData = JSON.parse(storedGitHub);
+            setGitHub(githubData);
+            console.log('GitHub account restored from storage:', githubData.username);
+          }
         } else {
           // Session expired
+          console.log('Session expired, logging out');
           logout();
         }
       }
@@ -65,6 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = (userData: User) => {
+    console.log('Logging in user:', userData.name);
     setUser(userData);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
     localStorage.setItem(STORAGE_KEYS.LOGIN_TIME, Date.now().toString());
@@ -73,21 +92,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    console.log('Logging out user');
     setUser(null);
     setGitHub(null); // Clear GitHub data on logout
     localStorage.removeItem(STORAGE_KEYS.USER);
+    localStorage.removeItem(STORAGE_KEYS.GITHUB);
     localStorage.removeItem(STORAGE_KEYS.LOGIN_TIME);
     localStorage.removeItem(STORAGE_KEYS.CODE_VERIFIER);
   };
 
   const linkGitHub = (githubData: GitHubAccount) => {
+    console.log('Linking GitHub account:', githubData.username);
     setGitHub(githubData);
-    console.log('GitHub account linked:', githubData.username);
+    // Persist GitHub account data
+    localStorage.setItem(STORAGE_KEYS.GITHUB, JSON.stringify(githubData));
   };
 
   const unlinkGitHub = () => {
+    console.log('Unlinking GitHub account');
     setGitHub(null);
-    console.log('GitHub account unlinked');
+    localStorage.removeItem(STORAGE_KEYS.GITHUB);
   };
 
   useEffect(() => {
@@ -100,6 +124,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAuthenticated = !!user;
   const isGitHubLinked = !!github;
+
+  console.log('Auth context state:', { 
+    isAuthenticated, 
+    isGitHubLinked, 
+    userName: user?.name,
+    githubUsername: github?.username 
+  });
 
   return (
     <AuthContext.Provider
