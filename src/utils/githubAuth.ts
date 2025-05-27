@@ -1,9 +1,8 @@
-
 // GitHub OAuth configuration
 const GITHUB_CONFIG = {
-  CLIENT_ID: import.meta.env.VITE_GITHUB_CLIENT_ID, // Replace with your GitHub OAuth app client ID
+  CLIENT_ID: window.env.VITE_GITHUB_CLIENT_ID, // Replace with your GitHub OAuth app client ID
   AUTHORIZE_URL: 'https://github.com/login/oauth/authorize',
-  TOKEN_URL: import.meta.env.VITE_GITHUB_TOKEN_URL,
+  TOKEN_URL: window.env.VITE_GITHUB_TOKEN_URL,
   API_URL: 'https://api.github.com',
   REDIRECT_URI: `${window.location.origin}/auth/callback`,
   SCOPES: 'repo read:user'

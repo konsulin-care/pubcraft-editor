@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,7 +9,7 @@ import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 const AuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login, linkGitHub, isAuthenticated, user } = useAuth();
+  const { login, linkGitHub, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processing authentication...');
@@ -29,13 +28,7 @@ const AuthCallback = () => {
         const state = searchParams.get('state');
         const error = searchParams.get('error');
 
-        console.log('Processing callback with:', { 
-          code: !!code, 
-          state: !!state, 
-          error,
-          isAuthenticated,
-          userOrcid: user?.orcid
-        });
+        console.log('Processing callback with:', { code: !!code, state: !!state, error });
 
         if (error) {
           throw new Error(`Authentication error: ${error}`);
@@ -59,10 +52,7 @@ const AuthCallback = () => {
 
         if (githubState && state === githubState) {
           // Handle GitHub OAuth callback
-          console.log('Processing GitHub callback, checking if user is authenticated...');
-          console.log('Current authentication state:', { isAuthenticated, user: user?.name });
-          
-          if (!isAuthenticated || !user) {
+          if (!isAuthenticated) {
             throw new Error('You must be logged in with ORCID to link GitHub');
           }
 
@@ -153,7 +143,7 @@ const AuthCallback = () => {
     };
 
     processCallback();
-  }, [searchParams, navigate, login, linkGitHub, isAuthenticated, user, toast]);
+  }, [searchParams, navigate, login, linkGitHub, isAuthenticated, toast]);
 
   const getStatusIcon = () => {
     switch (status) {
