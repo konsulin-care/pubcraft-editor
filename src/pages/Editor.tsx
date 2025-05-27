@@ -17,14 +17,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Trash2, Clock } from 'lucide-react';
 import { ExtendedMetadata, Reference } from '@/types/metadata';
 
-interface ExtendedDraft {
-  markdown: string;
-  metadata: ExtendedMetadata;
-  references: Reference[];
-  updatedAt: string;
-  dirty?: boolean;
-}
-
 const Editor = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -40,25 +32,16 @@ const Editor = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [hasUnsyncedChanges, setHasUnsyncedChanges] = useState(false);
 
-  // Auto-save hook (we'll need to update this for the new structure)
-  useAutosave(markdown, metadata);
+  // Auto-save hook
+  useAutosave(markdown, metadata, references);
 
   // Load draft on component mount
   useEffect(() => {
     const draft = loadDraft();
     if (draft) {
       setMarkdown(draft.markdown);
-      // Handle both old and new metadata formats
-      if (typeof draft.metadata.author === 'string' || Array.isArray(draft.metadata.author)) {
-        setMetadata(draft.metadata as ExtendedMetadata);
-      } else {
-        // Convert old format to new format
-        setMetadata({
-          title: draft.metadata.title || '',
-          author: draft.metadata.author || user?.name || '',
-          abstract: draft.metadata.abstract || ''
-        });
-      }
+      setMetadata(draft.metadata);
+      setReferences(draft.references || []);
       setLastSaved(draft.updatedAt);
       setHasUnsyncedChanges(draft.dirty || false);
       toast({
@@ -66,7 +49,7 @@ const Editor = () => {
         description: "Your previous work has been restored.",
       });
     }
-  }, [toast, user?.name]);
+  }, [toast]);
 
   // Update author when user data changes
   useEffect(() => {
