@@ -110,28 +110,10 @@ export async function handleOrcidCallback(code: string, state: string): Promise<
     }
 
     const tokenData = await tokenResponse.json();
-    const { access_token, orcid, name } = tokenData;
+    const { access_token, orcid, name, email, refresh_token } = tokenData;
 
-    // Fetch user profile data
-    const profileResponse = await fetch(`${ORCID_CONFIG.API_URL}/${orcid}/person`, {
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${access_token}`
-      }
-    });
-
-    if (!profileResponse.ok) {
-      throw new Error('Failed to fetch user profile');
-    }
-
-    const profileData = await profileResponse.json();
-    
     // Extract user information
-    const userName = name || 
-      profileData.name?.['given-names']?.value + ' ' + profileData.name?.['family-name']?.value ||
-      'ORCID User';
-
-    const email = profileData.emails?.email?.[0]?.email;
+    const userName = name || 'ORCID User';
 
     // Clean up temporary storage
     localStorage.removeItem('orcid_state');
@@ -141,7 +123,8 @@ export async function handleOrcidCallback(code: string, state: string): Promise<
       name: userName,
       orcid: orcid,
       email: email,
-      accessToken: access_token
+      accessToken: access_token,
+      refreshToken: refresh_token
     };
   } catch (error) {
     console.error('Error handling ORCID callback:', error);
