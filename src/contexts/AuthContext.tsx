@@ -32,6 +32,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const SESSION_TIMEOUT = 60 * 60 * 1000; // 1 hour
 const STORAGE_KEYS = {
   USER: 'orcid_user',
+  GITHUB: 'github_account',
   LOGIN_TIME: 'orcid_login_time',
   CODE_VERIFIER: 'orcid_code_verifier'
 };
@@ -44,6 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const checkAuthStatus = () => {
     try {
       const storedUser = localStorage.getItem(STORAGE_KEYS.USER);
+      const storedGitHub = localStorage.getItem(STORAGE_KEYS.GITHUB);
       const loginTime = localStorage.getItem(STORAGE_KEYS.LOGIN_TIME);
 
       if (storedUser && loginTime) {
@@ -51,6 +53,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (timeDiff < SESSION_TIMEOUT) {
           setUser(JSON.parse(storedUser));
+          
+          // Also restore GitHub account if it exists
+          if (storedGitHub) {
+            setGitHub(JSON.parse(storedGitHub));
+          }
         } else {
           // Session expired
           logout();
@@ -74,19 +81,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
-    setGitHub(null); // Clear GitHub data on logout
+    setGitHub(null);
     localStorage.removeItem(STORAGE_KEYS.USER);
+    localStorage.removeItem(STORAGE_KEYS.GITHUB);
     localStorage.removeItem(STORAGE_KEYS.LOGIN_TIME);
     localStorage.removeItem(STORAGE_KEYS.CODE_VERIFIER);
   };
 
   const linkGitHub = (githubData: GitHubAccount) => {
     setGitHub(githubData);
-    console.log('GitHub account linked:', githubData.username);
+    localStorage.setItem(STORAGE_KEYS.GITHUB, JSON.stringify(githubData));
+    console.log('GitHub account linked and persisted:', githubData.username);
   };
 
   const unlinkGitHub = () => {
     setGitHub(null);
+    localStorage.removeItem(STORAGE_KEYS.GITHUB);
     console.log('GitHub account unlinked');
   };
 

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,7 +10,7 @@ import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 const AuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login, linkGitHub, isAuthenticated } = useAuth();
+  const { login, linkGitHub, user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processing authentication...');
@@ -21,6 +22,12 @@ const AuthCallback = () => {
       if (hasProcessed.current) {
         return;
       }
+
+      // Wait for auth context to initialize
+      if (authLoading) {
+        return;
+      }
+
       hasProcessed.current = true;
 
       try {
@@ -47,12 +54,15 @@ const AuthCallback = () => {
           githubState, 
           orcidState,
           isGitHubMatch: githubState === state,
-          isOrcidMatch: orcidState === state
+          isOrcidMatch: orcidState === state,
+          currentUser: !!user
         });
 
         if (githubState && state === githubState) {
           // Handle GitHub OAuth callback
-          if (!isAuthenticated) {
+          console.log('Processing GitHub callback, current user:', user);
+          
+          if (!user) {
             throw new Error('You must be logged in with ORCID to link GitHub');
           }
 
@@ -73,7 +83,7 @@ const AuthCallback = () => {
             navigate('/editor', { replace: true });
           }, 2000);
 
-        } else if (orcidState && state === orcidState) {
+        } else if (orcidState) {
           // Handle ORCID OAuth callback
           setMessage('Exchanging authorization code...');
           const userData = await handleOrcidCallback(code, state);
@@ -93,31 +103,7 @@ const AuthCallback = () => {
             navigate('/editor', { replace: true });
           }, 2000);
         } else {
-          // Check if either state exists but doesn't match
-          if (githubState || orcidState) {
-            console.warn('State mismatch detected, but this might be normal during development');
-            // In development, state mismatches can happen due to hot reloading
-            // Let's try to handle this gracefully
-            if (orcidState) {
-              // Try ORCID flow
-              setMessage('Exchanging authorization code...');
-              const userData = await handleOrcidCallback(code, state);
-              setMessage('Login successful! Redirecting...');
-              setStatus('success');
-              login(userData);
-              toast({
-                title: "Welcome!",
-                description: `Successfully logged in as ${userData.name}`,
-              });
-              setTimeout(() => {
-                navigate('/editor', { replace: true });
-              }, 2000);
-            } else {
-              throw new Error('Invalid authentication state');
-            }
-          } else {
-            throw new Error('No valid authentication state found');
-          }
+          throw new Error('No valid authentication state found');
         }
 
       } catch (error) {
@@ -133,7 +119,7 @@ const AuthCallback = () => {
 
         // Redirect back to appropriate page after error
         setTimeout(() => {
-          if (isAuthenticated) {
+          if (user) {
             navigate('/editor', { replace: true });
           } else {
             navigate('/', { replace: true });
@@ -143,7 +129,7 @@ const AuthCallback = () => {
     };
 
     processCallback();
-  }, [searchParams, navigate, login, linkGitHub, isAuthenticated, toast]);
+  }, [searchParams, navigate, login, linkGitHub, user, authLoading, toast]);
 
   const getStatusIcon = () => {
     switch (status) {
