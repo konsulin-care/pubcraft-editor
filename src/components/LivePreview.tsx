@@ -100,10 +100,10 @@ const LivePreview: React.FC<LivePreviewProps> = ({ markdown, metadata, reference
           Live Preview
         </CardTitle>
       </CardHeader>
-      <CardContent className="prose prose-gray max-w-none">
+      <CardContent className="max-w-none overflow-y-auto max-h-[70vh]">
         {/* Metadata Section */}
         {(metadata.title || metadata.author || metadata.abstract) && (
-          <div className="border-b pb-6 mb-6 not-prose">
+          <div className="border-b pb-6 mb-6">
             {metadata.title && (
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
                 {metadata.title}
@@ -147,12 +147,31 @@ const LivePreview: React.FC<LivePreviewProps> = ({ markdown, metadata, reference
 
         {/* Markdown Content */}
         {markdown ? (
-          <ReactMarkdown
-            remarkPlugins={[remarkMath]}
-            rehypePlugins={[rehypeKatex]}
-          >
-            {processMarkdownWithCitations(markdown)}
-          </ReactMarkdown>
+          <div className="prose prose-gray max-w-none prose-headings:text-gray-900 prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-h4:text-lg prose-h5:text-base prose-h6:text-sm prose-strong:text-gray-900 prose-strong:font-semibold">
+            <ReactMarkdown
+              remarkPlugins={[remarkMath]}
+              rehypePlugins={[rehypeKatex]}
+              components={{
+                h1: ({children}) => <h1 className="text-3xl font-bold text-gray-900 mt-8 mb-4">{children}</h1>,
+                h2: ({children}) => <h2 className="text-2xl font-semibold text-gray-900 mt-6 mb-3">{children}</h2>,
+                h3: ({children}) => <h3 className="text-xl font-semibold text-gray-900 mt-5 mb-3">{children}</h3>,
+                h4: ({children}) => <h4 className="text-lg font-semibold text-gray-900 mt-4 mb-2">{children}</h4>,
+                h5: ({children}) => <h5 className="text-base font-semibold text-gray-900 mt-3 mb-2">{children}</h5>,
+                h6: ({children}) => <h6 className="text-sm font-semibold text-gray-900 mt-3 mb-2">{children}</h6>,
+                strong: ({children}) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                em: ({children}) => <em className="italic text-gray-800">{children}</em>,
+                p: ({children}) => <p className="text-gray-700 leading-relaxed mb-4">{children}</p>,
+                ul: ({children}) => <ul className="list-disc ml-6 mb-4 text-gray-700">{children}</ul>,
+                ol: ({children}) => <ol className="list-decimal ml-6 mb-4 text-gray-700">{children}</ol>,
+                li: ({children}) => <li className="mb-1">{children}</li>,
+                blockquote: ({children}) => <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-600 my-4">{children}</blockquote>,
+                code: ({children}) => <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono text-gray-800">{children}</code>,
+                pre: ({children}) => <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>
+              }}
+            >
+              {processMarkdownWithCitations(markdown)}
+            </ReactMarkdown>
+          </div>
         ) : (
           <p className="text-gray-500 italic">
             Start writing to see your content preview here...

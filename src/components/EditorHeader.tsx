@@ -1,11 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Clock, Trash2 } from 'lucide-react';
-import GitHubSaveButton from './GitHubSaveButton';
-import LinkGitHubButton from './LinkGitHubButton';
 import { useAuth } from '@/contexts/AuthContext';
+import { Clock, Wifi, WifiOff, Trash2, LogOut } from 'lucide-react';
 import { ExtendedMetadata, Reference } from '@/types/metadata';
+import GitHubSaveButton from '@/components/github/GitHubSaveButton';
+import { generateBibContent } from '@/utils/bibliography';
 
 interface EditorHeaderProps {
   lastSaved: string;
@@ -18,32 +18,6 @@ interface EditorHeaderProps {
   onGitHubSaveSuccess: () => void;
 }
 
-// Convert references to BibTeX format
-const convertReferenceTosBibTeX = (references: Reference[]): string => {
-  if (!references || references.length === 0) return '';
-  
-  return references.map(ref => {
-    const bibKey = ref.id || `ref${Date.now()}`;
-    const type = ref.type || 'article';
-    
-    let bibEntry = `@${type}{${bibKey},\n`;
-    bibEntry += `  title={${ref.title}},\n`;
-    bibEntry += `  author={${ref.author}},\n`;
-    bibEntry += `  year={${ref.year}}`;
-    
-    if (ref.journal) {
-      bibEntry += `,\n  journal={${ref.journal}}`;
-    }
-    
-    if (ref.url) {
-      bibEntry += `,\n  url={${ref.url}}`;
-    }
-    
-    bibEntry += '\n}\n';
-    return bibEntry;
-  }).join('\n');
-};
-
 const EditorHeader: React.FC<EditorHeaderProps> = ({
   lastSaved,
   hasUnsyncedChanges,
@@ -54,49 +28,67 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
   onClearDraft,
   onGitHubSaveSuccess
 }) => {
-  const { isGitHubLinked } = useAuth();
-  
-  const bibContent = convertReferenceTosBibTeX(references);
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    if (hasUnsyncedChanges) {
+      const confirmed = window.confirm('You have unsynced changes. Are you sure you want to logout?');
+      if (!confirmed) return;
+    }
+    logout();
+  };
+
+  const bibContent = generateBibContent(references);
 
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex items-center justify-between w-full">
       <div className="flex items-center space-x-4">
-        <h1 className="text-2xl font-bold text-gray-900">Article Editor</h1>
+        <h1 className="text-xl font-semibold">Article Editor</h1>
         
-        {lastSaved && (
-          <div className="flex items-center text-sm text-gray-500">
-            <Clock className="h-4 w-4 mr-1" />
-            <span>
-              Last saved: {new Date(lastSaved).toLocaleTimeString()}
-              {hasUnsyncedChanges && (
-                <span className="ml-2 text-orange-600 font-medium">
-                  • Unsynced changes
-                </span>
-              )}
-            </span>
-          </div>
-        )}
+        <div className="flex items-center space-x-2 text-sm text-gray-600">
+          {isOnline ? (
+            <Wifi className="h-4 w-4 text-green-600" />
+          ) : (
+            <WifiOff className="h-4 w-4 text-red-600" />
+          )}
+          
+          {lastSaved && (
+            <div className="flex items-center space-x-1">
+              <Clock className="h-4 w-4" />
+              <span>Last saved: {new Date(lastSaved).toLocaleTimeString()}</span>
+            </div>
+          )}
+          
+          {hasUnsyncedChanges && (
+            <span className="text-orange-600 font-medium">Unsynced changes</span>
+          )}
+        </div>
       </div>
 
-      <div className="flex items-center space-x-3">
-        {!isGitHubLinked && <LinkGitHubButton />}
-        
+      <div className="flex items-center space-x-2">
         <GitHubSaveButton
           markdown={markdown}
           metadata={metadata}
           bibContent={bibContent}
-          disabled={!isOnline}
           onSaveSuccess={onGitHubSaveSuccess}
         />
-
+        
         <Button
           variant="outline"
           size="sm"
           onClick={onClearDraft}
-          className="text-red-600 hover:text-red-700"
         >
           <Trash2 className="h-4 w-4 mr-2" />
           Clear Draft
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
         </Button>
       </div>
     </div>

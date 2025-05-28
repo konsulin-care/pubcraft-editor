@@ -5,16 +5,52 @@ import { useToast } from '@/hooks/use-toast';
 import { useAutosave, loadDraft, clearDraft, markDraftSynced } from '@/utils/storage';
 import { ExtendedMetadata, Reference } from '@/types/metadata';
 
+const defaultMarkdown = `# Heading 1
+
+## Heading 2
+
+### Heading 3
+
+#### Heading 4
+
+##### Heading 5
+
+###### Heading 6
+
+Displaying math equation as follow:
+
+$$\\omega = \\frac{1}{\\frac{\\omega_B}{3} \\sqrt{2 \\pi}} e^{-\\frac{1}{2}\\left(\\frac{DDD - \\omega_B}{\\omega_B/3}\\right)^2}$$`;
+
+const getDefaultMetadata = (userName?: string, userEmail?: string): ExtendedMetadata => ({
+  title: 'The title of the manuscript',
+  author: [
+    {
+      name: userName || 'User Name',
+      corresponding: true,
+      email: userEmail || 'user.email@mail.com',
+      affiliations: [{ ref: '1' }],
+      roles: ['conceptualization', 'methodology', 'analysis', 'visualization', 'writing']
+    }
+  ],
+  abstract: 'This is an abstract',
+  funding: 'The author(s) received no specific funding for this work.',
+  keywords: ['Keyword 1', 'Keyword 2'],
+  affiliations: [
+    {
+      id: '1',
+      name: 'University of Somewhere',
+      city: 'Somewhere',
+      country: 'Someland'
+    }
+  ]
+});
+
 export const useEditorState = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
   const [markdown, setMarkdown] = useState('');
-  const [metadata, setMetadata] = useState<ExtendedMetadata>({
-    title: '',
-    author: user?.name || '',
-    abstract: ''
-  });
+  const [metadata, setMetadata] = useState<ExtendedMetadata>(getDefaultMetadata());
   const [references, setReferences] = useState<Reference[]>([]);
   const [lastSaved, setLastSaved] = useState<string>('');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -36,15 +72,27 @@ export const useEditorState = () => {
         title: "Draft Loaded",
         description: "Your previous work has been restored.",
       });
+    } else {
+      // Set default content for new users
+      setMarkdown(defaultMarkdown);
+      setMetadata(getDefaultMetadata(user?.name, user?.email));
     }
-  }, [toast]);
+  }, [toast, user?.name, user?.email]);
 
   // Update author when user data changes
   useEffect(() => {
-    if (user?.name && !metadata.author) {
-      setMetadata(prev => ({ ...prev, author: user.name }));
+    if (user?.name && Array.isArray(metadata.author) && metadata.author.length > 0) {
+      const updatedMetadata = { ...metadata };
+      if (Array.isArray(updatedMetadata.author)) {
+        updatedMetadata.author[0] = {
+          ...updatedMetadata.author[0],
+          name: user.name,
+          email: user.email || updatedMetadata.author[0].email
+        };
+        setMetadata(updatedMetadata);
+      }
     }
-  }, [user?.name, metadata.author]);
+  }, [user?.name, user?.email]);
 
   // Handle online/offline status
   useEffect(() => {
@@ -80,12 +128,8 @@ export const useEditorState = () => {
   const handleClearDraft = () => {
     if (window.confirm('Are you sure you want to clear your draft? This action cannot be undone.')) {
       clearDraft();
-      setMarkdown('');
-      setMetadata({
-        title: '',
-        author: user?.name || '',
-        abstract: ''
-      });
+      setMarkdown(defaultMarkdown);
+      setMetadata(getDefaultMetadata(user?.name, user?.email));
       setReferences([]);
       setLastSaved('');
       setHasUnsyncedChanges(false);
