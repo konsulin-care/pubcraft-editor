@@ -1,75 +1,32 @@
-
 import { Octokit } from 'octokit';
 
-export interface GitHubConfig {
-  owner: string;
-  repo: string;
-  token: string;
+// Re-export types and functions from refactored modules
+export * from './github/types';
+export * from './github/repository';
+
+import { 
+  CommitFileParams, 
+  CreatePullRequestParams, 
+  Metadata,
+  Repository 
+} from './github/types';
+import { createRepository } from './github/repository';
+
+// Generate directory name from title
+export function generateDirectoryName(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/[^a-z0-9\s-]/g, '') // Keep only alphanumeric, spaces, and dashes
+    .replace(/\s+/g, '-') // Replace spaces with dashes
+    .replace(/-+/g, '-') // Replace multiple dashes with single dash
+    .replace(/^-|-$/g, ''); // Remove leading/trailing dashes
 }
 
-export interface CommitFileParams {
-  owner: string;
-  repo: string;
-  path: string;
-  content: string;
-  message: string;
-  branch?: string;
-}
-
-export interface CreatePullRequestParams {
-  owner: string;
-  repo: string;
-  head: string;
-  base?: string;
-  title: string;
-  body: string;
-}
-
-export interface Metadata {
-  title: string;
-  author: string;
-  abstract: string;
-}
-
-// New interfaces for repository management
-export interface Repository {
-  name: string;
-  full_name: string;
-  private: boolean;
-  default_branch: string;
-}
-
-export interface Organization {
-  login: string;
-  avatar_url: string;
-}
-
-export interface RepositoryFile {
-  name: string;
-  path: string;
-  type: 'file' | 'dir';
-}
-
-// List user repositories
-export async function listRepositories(token: string): Promise<Repository[]> {
-  const octokit = new Octokit({ auth: token });
-  
-  try {
-    const { data } = await octokit.rest.repos.listForAuthenticatedUser({
-      sort: 'updated',
-      per_page: 100
-    });
-    
-    return data.map(repo => ({
-      name: repo.name,
-      full_name: repo.full_name,
-      private: repo.private,
-      default_branch: repo.default_branch
-    }));
-  } catch (error) {
-    console.error('Error listing repositories:', error);
-    throw new Error(`Failed to list repositories: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
+// Generate user branch name
+export function generateUserBranch(firstName: string): string {
+  return `draft-${firstName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
 }
 
 // List repository branches
@@ -186,46 +143,48 @@ export async function getFileContent({
   }
 }
 
-// Generate directory name from title
-export function generateDirectoryName(title: string): string {
-  return title
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove accents
-    .replace(/[^a-z0-9\s-]/g, '') // Keep only alphanumeric, spaces, and dashes
-    .replace(/\s+/g, '-') // Replace spaces with dashes
-    .replace(/-+/g, '-') // Replace multiple dashes with single dash
-    .replace(/^-|-$/g, ''); // Remove leading/trailing dashes
-}
-
-// Generate user branch name
-export function generateUserBranch(firstName: string): string {
-  return `draft-${firstName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-}
-
 // Setup repository structure with required branches
 export async function setupRepositoryStructure({
   owner,
   repo,
   userFirstName,
   manuscriptTitle,
-  token
+  token,
+  createRepo = false
 }: {
   owner: string;
   repo: string;
   userFirstName: string;
   manuscriptTitle: string;
   token: string;
+  createRepo?: boolean;
 }): Promise<void> {
   const octokit = new Octokit({ auth: token });
   
   try {
-    // Get default branch SHA
-    const { data: defaultBranch } = await octokit.rest.repos.get({ owner, repo });
+    let repository;
+    
+    if (createRepo) {
+      repository = await createRepository({
+        owner,
+        repo,
+        token,
+        isPrivate: false
+      });
+    } else {
+      const { data } = await octokit.rest.repos.get({ owner, repo });
+      repository = {
+        name: data.name,
+        full_name: data.full_name,
+        private: data.private,
+        default_branch: data.default_branch
+      };
+    }
+    
     const { data: refData } = await octokit.rest.git.getRef({
       owner,
       repo,
-      ref: `heads/${defaultBranch.default_branch}`
+      ref: `heads/${repository.default_branch}`
     });
     
     const baseSha = refData.object.sha;
@@ -239,7 +198,6 @@ export async function setupRepositoryStructure({
         sha: baseSha
       });
     } catch (error) {
-      // Branch might already exist
       console.log('Publish branch might already exist');
     }
     
@@ -253,7 +211,6 @@ export async function setupRepositoryStructure({
         sha: baseSha
       });
     } catch (error) {
-      // Branch might already exist
       console.log('User draft branch might already exist');
     }
     
@@ -485,25 +442,4 @@ ${metadata.abstract}
 ---
 
 This is an automated submission created via the PubCraft editor.`;
-}
-
-// Validate GitHub repository access
-export async function validateRepository({
-  owner,
-  repo,
-  token
-}: {
-  owner: string;
-  repo: string;
-  token: string;
-}): Promise<boolean> {
-  const octokit = new Octokit({ auth: token });
-  
-  try {
-    await octokit.rest.repos.get({ owner, repo });
-    return true;
-  } catch (error) {
-    console.error('Repository validation failed:', error);
-    return false;
-  }
 }

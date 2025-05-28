@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 interface User {
@@ -7,6 +6,8 @@ interface User {
   orcid: string;
   email?: string;
   accessToken: string;
+  login?: string;
+  avatar_url?: string;
 }
 
 interface GitHubAccount {
@@ -52,15 +53,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const timeDiff = Date.now() - parseInt(loginTime);
         
         if (timeDiff < SESSION_TIMEOUT) {
-          setUser(JSON.parse(storedUser));
+          const userData = JSON.parse(storedUser);
+          // Add missing properties for GitHub integration
+          if (userData && !userData.login) {
+            userData.login = userData.name?.split(' ')[0]?.toLowerCase() || userData.id;
+          }
+          setUser(userData);
           
-          // Also restore GitHub account if it exists
+          // Always restore GitHub account if it exists
           if (storedGitHub) {
             setGitHub(JSON.parse(storedGitHub));
           }
         } else {
           // Session expired
           logout();
+        }
+      } else {
+        // Check if GitHub is still connected even if user session expired
+        if (storedGitHub) {
+          setGitHub(JSON.parse(storedGitHub));
         }
       }
     } catch (error) {
@@ -72,6 +83,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = (userData: User) => {
+    // Ensure GitHub-compatible properties
+    if (!userData.login) {
+      userData.login = userData.name?.split(' ')[0]?.toLowerCase() || userData.id;
+    }
+    
     setUser(userData);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
     localStorage.setItem(STORAGE_KEYS.LOGIN_TIME, Date.now().toString());
@@ -81,9 +97,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
-    setGitHub(null);
+    // Don't remove GitHub connection on logout - persist it
+    // setGitHub(null);
     localStorage.removeItem(STORAGE_KEYS.USER);
-    localStorage.removeItem(STORAGE_KEYS.GITHUB);
+    // localStorage.removeItem(STORAGE_KEYS.GITHUB); // Keep GitHub connection
     localStorage.removeItem(STORAGE_KEYS.LOGIN_TIME);
     localStorage.removeItem(STORAGE_KEYS.CODE_VERIFIER);
   };

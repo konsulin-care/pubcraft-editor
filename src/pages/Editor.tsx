@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { EditorHeader } from '@/components/EditorHeader';
-import { EditorLayout } from '@/components/EditorLayout';
+import EditorHeader from '@/components/EditorHeader';
+import EditorLayout from '@/components/EditorLayout';
 import { useEditorState } from '@/hooks/useEditorState';
 
 const Editor: React.FC = () => {

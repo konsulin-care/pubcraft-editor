@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,8 +6,8 @@ import {
   setupRepositoryStructure,
   commitManuscriptFiles,
   createMergeRequest,
-  generateDirectoryName,
-  generateUserBranch
+  generateUserBranch,
+  generateDirectoryName
 } from '@/utils/github';
 import { Github, Save, GitMerge, ExternalLink } from 'lucide-react';
 import { ExtendedMetadata } from '@/types/metadata';
@@ -45,27 +44,14 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
     try {
       const firstName = user.name.split(' ')[0];
       
-      if (config.mode === 'new') {
-        // Setup repository structure with creation
-        await setupRepositoryStructure({
-          owner: config.owner,
-          repo: config.repo,
-          userFirstName: firstName,
-          manuscriptTitle: metadata.title,
-          token: github.token,
-          createRepo: true
-        });
-      } else {
-        // Setup repository structure for existing repo
-        await setupRepositoryStructure({
-          owner: config.owner,
-          repo: config.repo,
-          userFirstName: firstName,
-          manuscriptTitle: metadata.title,
-          token: github.token,
-          createRepo: false
-        });
-      }
+      await setupRepositoryStructure({
+        owner: config.owner,
+        repo: config.repo,
+        userFirstName: firstName,
+        manuscriptTitle: metadata.title,
+        token: github.token,
+        createRepo: config.mode === 'new'
+      });
       
       setRepositoryConfig(config);
       setShowSelector(false);

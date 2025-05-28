@@ -1,15 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { validateRepository, listRepositories, listBranches, listRepositoryFiles, listUserOrganizations } from '@/utils/github';
-import { Folder, GitBranch, FileText, Search } from 'lucide-react';
+import { listRepositories, listBranches, listRepositoryFiles, listUserOrganizations } from '@/utils/github';
+import { Folder, GitBranch } from 'lucide-react';
+import RepositorySelector from './github/RepositorySelector';
+import BranchSelector from './github/BranchSelector';
+import FileSelector from './github/FileSelector';
+import NewRepositoryForm from './github/NewRepositoryForm';
 
 interface Repository {
   name: string;
@@ -204,7 +204,6 @@ const GitHubRepositorySelector: React.FC<GitHubRepositorySelectorProps> = ({
         return;
       }
 
-      // If no markdown file selected, we'll create the structure
       const markdownFile = selectedFile || 'pubcraft-manuscript.md';
 
       onRepositorySelected({
@@ -244,7 +243,7 @@ const GitHubRepositorySelector: React.FC<GitHubRepositorySelectorProps> = ({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Mode Selection */}
+          {/* Mode Selection Cards */}
           <div className="grid grid-cols-2 gap-4">
             <Card 
               className={`cursor-pointer transition-colors ${mode === 'existing' ? 'border-blue-500 bg-blue-50' : ''}`}
@@ -281,121 +280,45 @@ const GitHubRepositorySelector: React.FC<GitHubRepositorySelectorProps> = ({
             </Card>
           </div>
 
-          {/* Existing Repository Flow */}
-          {mode === 'existing' && (
+          {/* Conditional Forms */}
+          {mode === 'existing' ? (
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="repo-search">Search Repository</Label>
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="repo-search"
-                    placeholder="Type to search repositories..."
-                    value={repoSearchTerm}
-                    onChange={(e) => setRepoSearchTerm(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="repository">Repository</Label>
-                <Select onValueChange={handleRepositorySelect} disabled={loading}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a repository" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    {filteredRepositories.map((repo) => (
-                      <SelectItem key={repo.full_name} value={repo.full_name}>
-                        <div className="flex items-center">
-                          <span>{repo.full_name}</span>
-                          {repo.private && <span className="ml-2 text-xs bg-gray-200 px-1 rounded">Private</span>}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <RepositorySelector
+                repositories={repositories}
+                filteredRepositories={filteredRepositories}
+                repoSearchTerm={repoSearchTerm}
+                onSearchChange={setRepoSearchTerm}
+                onRepositorySelect={handleRepositorySelect}
+                loading={loading}
+              />
 
               {selectedRepo && (
-                <div>
-                  <Label htmlFor="branch">Branch</Label>
-                  <Select onValueChange={handleBranchSelect} disabled={loading} value={selectedBranch}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={branches.length === 0 ? "Empty repository - will create main branch" : "Select a branch"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {branches.map((branch) => (
-                        <SelectItem key={branch} value={branch}>
-                          {branch}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <BranchSelector
+                  branches={branches}
+                  selectedBranch={selectedBranch}
+                  onBranchSelect={handleBranchSelect}
+                  loading={loading}
+                />
               )}
 
               {selectedBranch && (
-                <div>
-                  <Label htmlFor="file">Markdown File</Label>
-                  <Select onValueChange={setSelectedFile} disabled={loading} value={selectedFile}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={markdownFiles.length === 0 ? "Will create pubcraft-manuscript.md" : "Select a markdown file"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {markdownFiles.map((file) => (
-                        <SelectItem key={file} value={file}>
-                          <div className="flex items-center">
-                            <FileText className="h-4 w-4 mr-2" />
-                            {file}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <FileSelector
+                  markdownFiles={markdownFiles}
+                  selectedFile={selectedFile}
+                  onFileSelect={setSelectedFile}
+                  loading={loading}
+                />
               )}
             </div>
-          )}
-
-          {/* New Repository Flow */}
-          {mode === 'new' && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="owner">Repository Owner/Organization</Label>
-                <Select onValueChange={setSelectedOwner} disabled={loading} value={selectedOwner}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select owner/organization" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {organizations.map((org) => (
-                      <SelectItem key={org.login} value={org.login}>
-                        <div className="flex items-center">
-                          {org.avatar_url && (
-                            <img 
-                              src={org.avatar_url} 
-                              alt={org.login} 
-                              className="w-4 h-4 rounded-full mr-2"
-                            />
-                          )}
-                          <span>{org.login}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="name">Repository Name</Label>
-                <Input
-                  id="name"
-                  value={newRepoName}
-                  onChange={(e) => setNewRepoName(e.target.value)}
-                  placeholder="e.g., my-manuscript"
-                />
-              </div>
-            </div>
+          ) : (
+            <NewRepositoryForm
+              organizations={organizations}
+              selectedOwner={selectedOwner}
+              newRepoName={newRepoName}
+              onOwnerChange={setSelectedOwner}
+              onRepoNameChange={setNewRepoName}
+              loading={loading}
+            />
           )}
 
           {/* Info Box */}
