@@ -1,3 +1,4 @@
+
 import { Octokit } from 'octokit';
 
 export interface GitHubConfig {
@@ -36,6 +37,11 @@ export interface Repository {
   full_name: string;
   private: boolean;
   default_branch: string;
+}
+
+export interface Organization {
+  login: string;
+  avatar_url: string;
 }
 
 export interface RepositoryFile {

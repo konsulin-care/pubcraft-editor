@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -7,13 +8,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { validateRepository, listRepositories, listBranches, listRepositoryFiles } from '@/utils/github';
-import { Folder, GitBranch, FileText, ExternalLink } from 'lucide-react';
+import { validateRepository, listRepositories, listBranches, listRepositoryFiles, listUserOrganizations } from '@/utils/github';
+import { Folder, GitBranch, FileText, Search } from 'lucide-react';
 
 interface Repository {
   name: string;
   full_name: string;
   private: boolean;
+}
+
+interface Organization {
+  login: string;
+  avatar_url: string;
 }
 
 interface GitHubRepositorySelectorProps {
@@ -36,11 +42,13 @@ const GitHubRepositorySelector: React.FC<GitHubRepositorySelectorProps> = ({
   onClose,
   onRepositorySelected
 }) => {
-  const { github } = useAuth();
+  const { github, user } = useAuth();
   const { toast } = useToast();
   
   const [mode, setMode] = useState<'existing' | 'new'>('existing');
   const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [filteredRepositories, setFilteredRepositories] = useState<Repository[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [branches, setBranches] = useState<string[]>([]);
   const [markdownFiles, setMarkdownFiles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -50,26 +58,55 @@ const GitHubRepositorySelector: React.FC<GitHubRepositorySelectorProps> = ({
   const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedFile, setSelectedFile] = useState('');
   const [newRepoName, setNewRepoName] = useState('');
-  const [newRepoOwner, setNewRepoOwner] = useState('');
+  const [selectedOwner, setSelectedOwner] = useState('');
+  const [repoSearchTerm, setRepoSearchTerm] = useState('');
 
-  // Load repositories on mount
+  // Load repositories and organizations on mount
   useEffect(() => {
     if (isOpen && github?.token) {
-      loadRepositories();
+      loadInitialData();
     }
   }, [isOpen, github?.token]);
 
-  const loadRepositories = async () => {
+  // Filter repositories based on search term
+  useEffect(() => {
+    if (repoSearchTerm) {
+      setFilteredRepositories(
+        repositories.filter(repo => 
+          repo.name.toLowerCase().includes(repoSearchTerm.toLowerCase()) ||
+          repo.full_name.toLowerCase().includes(repoSearchTerm.toLowerCase())
+        )
+      );
+    } else {
+      setFilteredRepositories(repositories);
+    }
+  }, [repositories, repoSearchTerm]);
+
+  const loadInitialData = async () => {
     if (!github?.token) return;
     
     setLoading(true);
     try {
-      const repos = await listRepositories(github.token);
+      // Load repositories and organizations in parallel
+      const [repos, orgs] = await Promise.all([
+        listRepositories(github.token),
+        listUserOrganizations(github.token)
+      ]);
+      
       setRepositories(repos);
+      setFilteredRepositories(repos);
+      setOrganizations([
+        // Add user as first option
+        { login: user?.login || '', avatar_url: user?.avatar_url || '' },
+        ...orgs
+      ]);
+      
+      // Set default owner to current user
+      setSelectedOwner(user?.login || '');
     } catch (error) {
       toast({
-        title: "Failed to load repositories",
-        description: "Could not fetch your GitHub repositories.",
+        title: "Failed to load data",
+        description: "Could not fetch your GitHub repositories and organizations.",
         variant: "destructive"
       });
     } finally {
@@ -88,6 +125,12 @@ const GitHubRepositorySelector: React.FC<GitHubRepositorySelectorProps> = ({
         token: github.token
       });
       setBranches(branchList);
+      
+      // If no branches, this is an empty repo
+      if (branchList.length === 0) {
+        setSelectedBranch('main'); // We'll create this
+        setMarkdownFiles([]);
+      }
     } catch (error) {
       toast({
         title: "Failed to load branches",
@@ -113,6 +156,11 @@ const GitHubRepositorySelector: React.FC<GitHubRepositorySelectorProps> = ({
       
       const mdFiles = files.filter(file => file.endsWith('.md'));
       setMarkdownFiles(mdFiles);
+      
+      // If no markdown files, we'll create the structure
+      if (mdFiles.length === 0) {
+        setSelectedFile('pubcraft-manuscript.md'); // We'll create this
+      }
     } catch (error) {
       toast({
         title: "Failed to load files",
@@ -147,27 +195,31 @@ const GitHubRepositorySelector: React.FC<GitHubRepositorySelectorProps> = ({
 
   const handleProceed = () => {
     if (mode === 'existing') {
-      if (!selectedRepo || !selectedBranch || !selectedFile) {
+      if (!selectedRepo || !selectedBranch) {
         toast({
           title: "Missing selection",
-          description: "Please select a repository, branch, and markdown file.",
+          description: "Please select a repository and branch.",
           variant: "destructive"
         });
         return;
       }
+
+      // If no markdown file selected, we'll create the structure
+      const markdownFile = selectedFile || 'pubcraft-manuscript.md';
 
       onRepositorySelected({
         mode: 'existing',
         owner: selectedRepo.full_name.split('/')[0],
         repo: selectedRepo.name,
         branch: selectedBranch,
-        markdownFile: selectedFile
+        markdownFile: markdownFile,
+        existingStructure: markdownFiles.length === 0
       });
     } else {
-      if (!newRepoOwner || !newRepoName) {
+      if (!selectedOwner || !newRepoName) {
         toast({
           title: "Missing information",
-          description: "Please provide repository owner and name.",
+          description: "Please select an owner and provide repository name.",
           variant: "destructive"
         });
         return;
@@ -175,7 +227,7 @@ const GitHubRepositorySelector: React.FC<GitHubRepositorySelectorProps> = ({
 
       onRepositorySelected({
         mode: 'new',
-        owner: newRepoOwner,
+        owner: selectedOwner,
         repo: newRepoName
       });
     }
@@ -233,13 +285,27 @@ const GitHubRepositorySelector: React.FC<GitHubRepositorySelectorProps> = ({
           {mode === 'existing' && (
             <div className="space-y-4">
               <div>
+                <Label htmlFor="repo-search">Search Repository</Label>
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="repo-search"
+                    placeholder="Type to search repositories..."
+                    value={repoSearchTerm}
+                    onChange={(e) => setRepoSearchTerm(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+
+              <div>
                 <Label htmlFor="repository">Repository</Label>
                 <Select onValueChange={handleRepositorySelect} disabled={loading}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a repository" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {repositories.map((repo) => (
+                  <SelectContent className="max-h-60">
+                    {filteredRepositories.map((repo) => (
                       <SelectItem key={repo.full_name} value={repo.full_name}>
                         <div className="flex items-center">
                           <span>{repo.full_name}</span>
@@ -254,9 +320,9 @@ const GitHubRepositorySelector: React.FC<GitHubRepositorySelectorProps> = ({
               {selectedRepo && (
                 <div>
                   <Label htmlFor="branch">Branch</Label>
-                  <Select onValueChange={handleBranchSelect} disabled={loading}>
+                  <Select onValueChange={handleBranchSelect} disabled={loading} value={selectedBranch}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a branch" />
+                      <SelectValue placeholder={branches.length === 0 ? "Empty repository - will create main branch" : "Select a branch"} />
                     </SelectTrigger>
                     <SelectContent>
                       {branches.map((branch) => (
@@ -272,9 +338,9 @@ const GitHubRepositorySelector: React.FC<GitHubRepositorySelectorProps> = ({
               {selectedBranch && (
                 <div>
                   <Label htmlFor="file">Markdown File</Label>
-                  <Select onValueChange={setSelectedFile} disabled={loading}>
+                  <Select onValueChange={setSelectedFile} disabled={loading} value={selectedFile}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a markdown file" />
+                      <SelectValue placeholder={markdownFiles.length === 0 ? "Will create pubcraft-manuscript.md" : "Select a markdown file"} />
                     </SelectTrigger>
                     <SelectContent>
                       {markdownFiles.map((file) => (
@@ -297,12 +363,27 @@ const GitHubRepositorySelector: React.FC<GitHubRepositorySelectorProps> = ({
             <div className="space-y-4">
               <div>
                 <Label htmlFor="owner">Repository Owner/Organization</Label>
-                <Input
-                  id="owner"
-                  value={newRepoOwner}
-                  onChange={(e) => setNewRepoOwner(e.target.value)}
-                  placeholder="e.g., your-username or organization"
-                />
+                <Select onValueChange={setSelectedOwner} disabled={loading} value={selectedOwner}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select owner/organization" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {organizations.map((org) => (
+                      <SelectItem key={org.login} value={org.login}>
+                        <div className="flex items-center">
+                          {org.avatar_url && (
+                            <img 
+                              src={org.avatar_url} 
+                              alt={org.login} 
+                              className="w-4 h-4 rounded-full mr-2"
+                            />
+                          )}
+                          <span>{org.login}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>

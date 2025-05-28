@@ -43,15 +43,29 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
     
     setIsLoading(true);
     try {
-      // Setup repository structure (branches)
       const firstName = user.name.split(' ')[0];
-      await setupRepositoryStructure({
-        owner: config.owner,
-        repo: config.repo,
-        userFirstName: firstName,
-        manuscriptTitle: metadata.title,
-        token: github.token
-      });
+      
+      if (config.mode === 'new') {
+        // Setup repository structure with creation
+        await setupRepositoryStructure({
+          owner: config.owner,
+          repo: config.repo,
+          userFirstName: firstName,
+          manuscriptTitle: metadata.title,
+          token: github.token,
+          createRepo: true
+        });
+      } else {
+        // Setup repository structure for existing repo
+        await setupRepositoryStructure({
+          owner: config.owner,
+          repo: config.repo,
+          userFirstName: firstName,
+          manuscriptTitle: metadata.title,
+          token: github.token,
+          createRepo: false
+        });
+      }
       
       setRepositoryConfig(config);
       setShowSelector(false);
