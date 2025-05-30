@@ -31,5 +31,8 @@ export interface Reference {
   author: string;
   year: string;
   journal?: string;
+  volume?: string;
+  pages?: string;
+  doi?: string;
   url?: string;
 }
