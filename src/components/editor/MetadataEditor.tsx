@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -5,8 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, User, BookOpen, Code, FileReference } from 'lucide-react';
+import { FileText, User, BookOpen, Code, Save } from 'lucide-react';
 import * as yaml from 'js-yaml';
 import { ExtendedMetadata, Reference } from '@/types/metadata';
 import BibliographyManager from '@/components/BibliographyManager';
@@ -16,13 +16,15 @@ interface MetadataEditorProps {
   onChange: (metadata: ExtendedMetadata) => void;
   references?: Reference[];
   onReferencesChange?: (references: Reference[]) => void;
+  onSave?: () => void;
 }
 
 const MetadataEditor: React.FC<MetadataEditorProps> = ({ 
   metadata, 
   onChange, 
   references = [],
-  onReferencesChange 
+  onReferencesChange,
+  onSave 
 }) => {
   const [showYamlView, setShowYamlView] = useState(false);
   const [yamlText, setYamlText] = useState('');
@@ -38,25 +40,40 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
 
   const generateDefaultYaml = () => {
     const defaultMetadata = {
-      title: 'The title of the manuscript',
+      title: 'This is the title',
+      subtitle: 'This is the subtitle',
+      abstract: 'This is an abstract',
       author: [{
-        name: 'User Name',
+        name: 'Aly Lamuri',
         corresponding: true,
-        email: 'user.email@mail.com',
-        affiliations: [{ ref: '1' }],
+        email: 'a.l.m.lamuri.murdani@rug.nl',
+        affiliations: [{ ref: 'rug' }, { ref: 'ui' }],
         roles: ['conceptualization', 'methodology', 'analysis', 'visualization', 'writing']
       }],
-      abstract: 'This is an abstract',
+      affiliations: [
+        {
+          id: 'rug',
+          name: 'University of Groningen',
+          city: 'Groningen',
+          country: 'Netherlands'
+        },
+        {
+          id: 'ui',
+          name: 'University of Indonesia',
+          city: 'Depok',
+          country: 'Indonesia'
+        }
+      ],
       funding: 'The author(s) received no specific funding for this work.',
-      keywords: ['Keyword 1', 'Keyword 2'],
-      affiliations: [{
-        id: '1',
-        name: 'University of Somewhere',
-        city: 'Somewhere',
-        country: 'Someland'
-      }]
+      keywords: ['Graph Theory', 'Prescription Registry', 'Co-prescription', 'Mental Health', 'Public Health Monitoring']
     };
     return yaml.dump(defaultMetadata, { indent: 2 });
+  };
+
+  const handleSave = () => {
+    if (onSave) {
+      onSave();
+    }
   };
 
   const toggleYamlView = () => {
@@ -113,6 +130,19 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
       : '';
   };
 
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeydown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeydown);
+    return () => document.removeEventListener('keydown', handleKeydown);
+  }, [onSave]);
+
   // Initialize YAML with default template if metadata is empty
   useEffect(() => {
     if (!hasUserModifiedYaml && (!metadata.title || metadata.title === 'The title of the manuscript')) {
@@ -126,229 +156,125 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center text-lg">
             <FileText className="h-5 w-5 mr-2" />
-            Article Metadata
+            Metadata
           </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleYamlView}
-          >
-            <Code className="h-4 w-4 mr-2" />
-            {showYamlView ? 'Form View' : 'YAML View'}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleYamlView}
+            >
+              <Code className="h-4 w-4 mr-2" />
+              {showYamlView ? 'Form View' : 'YAML View'}
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleSave}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save (⌘S)
+            </Button>
+          </div>
         </div>
       </CardHeader>
       
       <CardContent className="flex-1 min-h-0 p-4">
-        {onReferencesChange ? (
-          <Tabs defaultValue="metadata" className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
-              <TabsTrigger value="metadata">Metadata</TabsTrigger>
-              <TabsTrigger value="references">References</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="metadata" className="flex-1 min-h-0 mt-4">
-              <ScrollArea className="h-full pr-4">
-                {showYamlView ? (
-                  <div className="space-y-2">
-                    <Label>Extended YAML Metadata</Label>
-                    <Textarea
-                      value={yamlText}
-                      onChange={(e) => handleYamlChange(e.target.value)}
-                      className="min-h-[400px] font-mono text-sm resize-none"
-                      placeholder={generateDefaultYaml()}
-                    />
-                    {yamlError && (
-                      <p className="text-sm text-red-600">{yamlError}</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="title" className="flex items-center">
-                        <BookOpen className="h-4 w-4 mr-2" />
-                        Title
-                      </Label>
-                      <Input
-                        id="title"
-                        value={metadata.title}
-                        onChange={(e) => handleFieldChange('title', e.target.value)}
-                        placeholder="Enter article title..."
-                      />
-                    </div>
-
-                    {metadata.subtitle !== undefined && (
-                      <div className="space-y-2">
-                        <Label htmlFor="subtitle">Subtitle</Label>
-                        <Input
-                          id="subtitle"
-                          value={metadata.subtitle || ''}
-                          onChange={(e) => handleFieldChange('subtitle', e.target.value)}
-                          placeholder="Enter subtitle..."
-                        />
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <Label htmlFor="author" className="flex items-center">
-                        <User className="h-4 w-4 mr-2" />
-                        Author
-                      </Label>
-                      <Input
-                        id="author"
-                        value={getAuthorString()}
-                        onChange={(e) => handleFieldChange('author', e.target.value)}
-                        placeholder="Enter author name..."
-                      />
-                      <p className="text-xs text-gray-500">
-                        Use YAML view for advanced author metadata with affiliations
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="abstract">Abstract</Label>
-                      <Textarea
-                        id="abstract"
-                        value={metadata.abstract}
-                        onChange={(e) => handleFieldChange('abstract', e.target.value)}
-                        placeholder="Enter article abstract..."
-                        className="min-h-[120px] resize-none"
-                      />
-                    </div>
-
-                    {metadata.keywords && (
-                      <div className="space-y-2">
-                        <Label htmlFor="keywords">Keywords</Label>
-                        <Input
-                          id="keywords"
-                          value={metadata.keywords.join(', ')}
-                          onChange={(e) => handleFieldChange('keywords', e.target.value.split(', ').filter(k => k.trim()))}
-                          placeholder="Enter keywords separated by commas..."
-                        />
-                      </div>
-                    )}
-
-                    {metadata.funding && (
-                      <div className="space-y-2">
-                        <Label htmlFor="funding">Funding</Label>
-                        <Textarea
-                          id="funding"
-                          value={metadata.funding}
-                          onChange={(e) => handleFieldChange('funding', e.target.value)}
-                          placeholder="Enter funding information..."
-                          className="min-h-[60px] resize-none"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </ScrollArea>
-            </TabsContent>
-            
-            <TabsContent value="references" className="flex-1 min-h-0 mt-4">
-              <BibliographyManager
-                references={references}
-                onChange={onReferencesChange}
+        <ScrollArea className="h-full pr-4">
+          {showYamlView ? (
+            <div className="space-y-2">
+              <Label>Extended YAML Metadata</Label>
+              <Textarea
+                value={yamlText}
+                onChange={(e) => handleYamlChange(e.target.value)}
+                className="min-h-[500px] font-mono text-sm resize-none"
+                placeholder={generateDefaultYaml()}
               />
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <ScrollArea className="h-full pr-4">
-            {showYamlView ? (
+              {yamlError && (
+                <p className="text-sm text-red-600">{yamlError}</p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Extended YAML Metadata</Label>
-                <Textarea
-                  value={yamlText}
-                  onChange={(e) => handleYamlChange(e.target.value)}
-                  className="min-h-[400px] font-mono text-sm resize-none"
-                  placeholder={generateDefaultYaml()}
+                <Label htmlFor="title" className="flex items-center">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Title
+                </Label>
+                <Input
+                  id="title"
+                  value={metadata.title}
+                  onChange={(e) => handleFieldChange('title', e.target.value)}
+                  placeholder="Enter article title..."
                 />
-                {yamlError && (
-                  <p className="text-sm text-red-600">{yamlError}</p>
-                )}
               </div>
-            ) : (
-              <div className="space-y-4">
+
+              {metadata.subtitle !== undefined && (
                 <div className="space-y-2">
-                  <Label htmlFor="title" className="flex items-center">
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    Title
-                  </Label>
+                  <Label htmlFor="subtitle">Subtitle</Label>
                   <Input
-                    id="title"
-                    value={metadata.title}
-                    onChange={(e) => handleFieldChange('title', e.target.value)}
-                    placeholder="Enter article title..."
+                    id="subtitle"
+                    value={metadata.subtitle || ''}
+                    onChange={(e) => handleFieldChange('subtitle', e.target.value)}
+                    placeholder="Enter subtitle..."
                   />
                 </div>
+              )}
 
-                {metadata.subtitle !== undefined && (
-                  <div className="space-y-2">
-                    <Label htmlFor="subtitle">Subtitle</Label>
-                    <Input
-                      id="subtitle"
-                      value={metadata.subtitle || ''}
-                      onChange={(e) => handleFieldChange('subtitle', e.target.value)}
-                      placeholder="Enter subtitle..."
-                    />
-                  </div>
-                )}
+              <div className="space-y-2">
+                <Label htmlFor="author" className="flex items-center">
+                  <User className="h-4 w-4 mr-2" />
+                  Author
+                </Label>
+                <Input
+                  id="author"
+                  value={getAuthorString()}
+                  onChange={(e) => handleFieldChange('author', e.target.value)}
+                  placeholder="Enter author name..."
+                />
+                <p className="text-xs text-gray-500">
+                  Use YAML view for advanced author metadata with affiliations
+                </p>
+              </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="abstract">Abstract</Label>
+                <Textarea
+                  id="abstract"
+                  value={metadata.abstract}
+                  onChange={(e) => handleFieldChange('abstract', e.target.value)}
+                  placeholder="Enter article abstract..."
+                  className="min-h-[120px] resize-none"
+                />
+              </div>
+
+              {metadata.keywords && (
                 <div className="space-y-2">
-                  <Label htmlFor="author" className="flex items-center">
-                    <User className="h-4 w-4 mr-2" />
-                    Author
-                  </Label>
+                  <Label htmlFor="keywords">Keywords</Label>
                   <Input
-                    id="author"
-                    value={getAuthorString()}
-                    onChange={(e) => handleFieldChange('author', e.target.value)}
-                    placeholder="Enter author name..."
+                    id="keywords"
+                    value={metadata.keywords.join(', ')}
+                    onChange={(e) => handleFieldChange('keywords', e.target.value.split(', ').filter(k => k.trim()))}
+                    placeholder="Enter keywords separated by commas..."
                   />
-                  <p className="text-xs text-gray-500">
-                    Use YAML view for advanced author metadata with affiliations
-                  </p>
                 </div>
+              )}
 
+              {metadata.funding && (
                 <div className="space-y-2">
-                  <Label htmlFor="abstract">Abstract</Label>
+                  <Label htmlFor="funding">Funding</Label>
                   <Textarea
-                    id="abstract"
-                    value={metadata.abstract}
-                    onChange={(e) => handleFieldChange('abstract', e.target.value)}
-                    placeholder="Enter article abstract..."
-                    className="min-h-[120px] resize-none"
+                    id="funding"
+                    value={metadata.funding}
+                    onChange={(e) => handleFieldChange('funding', e.target.value)}
+                    placeholder="Enter funding information..."
+                    className="min-h-[60px] resize-none"
                   />
                 </div>
-
-                {metadata.keywords && (
-                  <div className="space-y-2">
-                    <Label htmlFor="keywords">Keywords</Label>
-                    <Input
-                      id="keywords"
-                      value={metadata.keywords.join(', ')}
-                      onChange={(e) => handleFieldChange('keywords', e.target.value.split(', ').filter(k => k.trim()))}
-                      placeholder="Enter keywords separated by commas..."
-                    />
-                  </div>
-                )}
-
-                {metadata.funding && (
-                  <div className="space-y-2">
-                    <Label htmlFor="funding">Funding</Label>
-                    <Textarea
-                      id="funding"
-                      value={metadata.funding}
-                      onChange={(e) => handleFieldChange('funding', e.target.value)}
-                      placeholder="Enter funding information..."
-                      className="min-h-[60px] resize-none"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-          </ScrollArea>
-        )}
+              )}
+            </div>
+          )}
+        </ScrollArea>
       </CardContent>
     </Card>
   );

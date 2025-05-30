@@ -1,10 +1,17 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import EditorHeader from '@/components/EditorHeader';
 import EditorLayout from '@/components/editor/EditorLayout';
+import GitHubConnectionModal from '@/components/GitHubConnectionModal';
 import { useEditorState } from '@/hooks/useEditorState';
+import { useAuth } from '@/contexts/AuthContext';
+import { type RepositoryConfig } from '@/components/GitHubRepositorySelector';
 
 const Editor: React.FC = () => {
+  const { isGitHubLinked } = useAuth();
+  const [showGitHubModal, setShowGitHubModal] = useState(false);
+  const [repositoryConfig, setRepositoryConfig] = useState<RepositoryConfig | null>(null);
+
   const {
     markdown,
     metadata,
@@ -19,6 +26,23 @@ const Editor: React.FC = () => {
     handleManualSave,
     handleGitHubSaveSuccess
   } = useEditorState();
+
+  // Show GitHub connection modal if not connected
+  useEffect(() => {
+    if (!isGitHubLinked) {
+      setShowGitHubModal(true);
+    }
+  }, [isGitHubLinked]);
+
+  const handleRepositorySelected = (config: RepositoryConfig) => {
+    setRepositoryConfig(config);
+    setShowGitHubModal(false);
+  };
+
+  const handleCloseGitHubModal = () => {
+    // Allow closing modal but show warning about limited functionality
+    setShowGitHubModal(false);
+  };
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
@@ -50,6 +74,12 @@ const Editor: React.FC = () => {
           />
         </div>
       </div>
+
+      <GitHubConnectionModal
+        isOpen={showGitHubModal}
+        onClose={handleCloseGitHubModal}
+        onRepositorySelected={handleRepositorySelected}
+      />
     </div>
   );
 };
