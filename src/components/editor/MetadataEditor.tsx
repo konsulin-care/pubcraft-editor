@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,7 +8,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { FileText, User, BookOpen, Code, Save } from 'lucide-react';
 import * as yaml from 'js-yaml';
 import { ExtendedMetadata, Reference } from '@/types/metadata';
-import BibliographyManager from '@/components/BibliographyManager';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useGitHubPersistence } from '@/hooks/useGitHubPersistence';
+import { saveFileToGitHub, generateMetadataYaml } from '@/utils/github/fileOperations';
 
 interface MetadataEditorProps {
   metadata: ExtendedMetadata;
@@ -30,6 +32,10 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
   const [yamlText, setYamlText] = useState('');
   const [yamlError, setYamlError] = useState('');
   const [hasUserModifiedYaml, setHasUserModifiedYaml] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
+  const { user, github } = useAuth();
+  const { connection } = useGitHubPersistence();
 
   const handleFieldChange = (field: keyof ExtendedMetadata, value: any) => {
     onChange({
@@ -70,9 +76,49 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
     return yaml.dump(defaultMetadata, { indent: 2 });
   };
 
-  const handleSave = () => {
-    if (onSave) {
-      onSave();
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Save to GitHub if connected
+      if (github?.token && connection && user?.name) {
+        const firstName = user.name.split(' ')[0];
+        const branch = `draft-${firstName.toLowerCase()}`;
+        const path = `draft/${connection.markdownFile}/metadata.yml`;
+        const content = generateMetadataYaml(metadata);
+
+        await saveFileToGitHub({
+          owner: connection.owner,
+          repo: connection.repo,
+          path,
+          content,
+          message: 'Update metadata',
+          branch,
+          token: github.token
+        });
+
+        toast({
+          title: "Metadata Saved",
+          description: "Synced to GitHub successfully",
+        });
+      } else {
+        toast({
+          title: "Metadata Saved",
+          description: `Saved locally at ${new Date().toLocaleTimeString()}`,
+        });
+      }
+
+      if (onSave) {
+        onSave();
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      toast({
+        title: "Save Failed",
+        description: error instanceof Error ? error.message : "Failed to save metadata",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -141,7 +187,7 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
 
     document.addEventListener('keydown', handleKeydown);
     return () => document.removeEventListener('keydown', handleKeydown);
-  }, [onSave]);
+  }, [metadata, github, connection, user]);
 
   // Initialize YAML with default template if metadata is empty
   useEffect(() => {
@@ -171,9 +217,10 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
               variant="default"
               size="sm"
               onClick={handleSave}
+              disabled={isSaving}
             >
               <Save className="h-4 w-4 mr-2" />
-              Save (⌘S)
+              {isSaving ? 'Saving...' : 'Save (⌘S)'}
             </Button>
           </div>
         </div>

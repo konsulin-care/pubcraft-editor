@@ -48,7 +48,7 @@ const GitHubConnectionModal: React.FC<GitHubConnectionModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-[500px]" hideCloseButton>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <Github className="h-5 w-5 mr-2" />

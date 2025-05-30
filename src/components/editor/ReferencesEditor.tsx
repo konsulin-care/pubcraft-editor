@@ -8,6 +8,10 @@ import { Label } from '@/components/ui/label';
 import { BookOpen, Code, Save } from 'lucide-react';
 import { Reference } from '@/types/metadata';
 import BibliographyManager from '@/components/BibliographyManager';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useGitHubPersistence } from '@/hooks/useGitHubPersistence';
+import { saveFileToGitHub } from '@/utils/github/fileOperations';
 
 interface ReferencesEditorProps {
   references: Reference[];
@@ -23,10 +27,54 @@ const ReferencesEditor: React.FC<ReferencesEditorProps> = ({
   const [showBibView, setShowBibView] = useState(false);
   const [bibText, setBibText] = useState('');
   const [bibError, setBibError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
+  const { user, github } = useAuth();
+  const { connection } = useGitHubPersistence();
 
-  const handleSave = () => {
-    if (onSave) {
-      onSave();
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Save to GitHub if connected
+      if (github?.token && connection && user?.name) {
+        const firstName = user.name.split(' ')[0];
+        const branch = `draft-${firstName.toLowerCase()}`;
+        const path = `draft/${connection.markdownFile}/pubcraft-reference.bib`;
+        const content = showBibView ? bibText : generateBibText();
+
+        await saveFileToGitHub({
+          owner: connection.owner,
+          repo: connection.repo,
+          path,
+          content,
+          message: 'Update references',
+          branch,
+          token: github.token
+        });
+
+        toast({
+          title: "References Saved",
+          description: "Synced to GitHub successfully",
+        });
+      } else {
+        toast({
+          title: "References Saved",
+          description: `Saved locally at ${new Date().toLocaleTimeString()}`,
+        });
+      }
+
+      if (onSave) {
+        onSave();
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      toast({
+        title: "Save Failed",
+        description: error instanceof Error ? error.message : "Failed to save references",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -80,7 +128,7 @@ const ReferencesEditor: React.FC<ReferencesEditorProps> = ({
 
     document.addEventListener('keydown', handleKeydown);
     return () => document.removeEventListener('keydown', handleKeydown);
-  }, [onSave]);
+  }, [references, bibText, showBibView, github, connection, user]);
 
   return (
     <Card className="h-full flex flex-col">
@@ -103,9 +151,10 @@ const ReferencesEditor: React.FC<ReferencesEditorProps> = ({
               variant="default"
               size="sm"
               onClick={handleSave}
+              disabled={isSaving}
             >
               <Save className="h-4 w-4 mr-2" />
-              Save (⌘S)
+              {isSaving ? 'Saving...' : 'Save (⌘S)'}
             </Button>
           </div>
         </div>

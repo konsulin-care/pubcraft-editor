@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit3, Save, Maximize2, Minimize2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useGitHubPersistence } from '@/hooks/useGitHubPersistence';
+import { saveFileToGitHub, generateManuscriptContent } from '@/utils/github/fileOperations';
 
 interface MarkdownEditorProps {
   initialValue?: string;
@@ -19,7 +22,10 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 }) => {
   const [markdown, setMarkdown] = useState(initialValue);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const { user, github } = useAuth();
+  const { connection } = useGitHubPersistence();
   const editorRef = useRef<HTMLDivElement>(null);
 
   const handleChange = (value?: string) => {
@@ -28,13 +34,49 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     onChange(newValue);
   };
 
-  const handleSave = () => {
-    if (onSave) {
-      onSave();
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Save to GitHub if connected
+      if (github?.token && connection && user?.name) {
+        const firstName = user.name.split(' ')[0];
+        const branch = `draft-${firstName.toLowerCase()}`;
+        const path = `draft/${connection.markdownFile}/pubcraft-manuscript.md`;
+        const content = generateManuscriptContent(markdown);
+
+        await saveFileToGitHub({
+          owner: connection.owner,
+          repo: connection.repo,
+          path,
+          content,
+          message: 'Update manuscript',
+          branch,
+          token: github.token
+        });
+
+        toast({
+          title: "Manuscript Saved",
+          description: "Synced to GitHub successfully",
+        });
+      } else {
+        toast({
+          title: "Draft Saved",
+          description: `Saved locally at ${new Date().toLocaleTimeString()}`,
+        });
+      }
+
+      if (onSave) {
+        onSave();
+      }
+    } catch (error) {
+      console.error('Save error:', error);
       toast({
-        title: "Draft Saved",
-        description: `Saved at ${new Date().toLocaleTimeString()}`,
+        title: "Save Failed",
+        description: error instanceof Error ? error.message : "Failed to save manuscript",
+        variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -58,7 +100,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
     document.addEventListener('keydown', handleKeydown);
     return () => document.removeEventListener('keydown', handleKeydown);
-  }, [onSave]);
+  }, [markdown, github, connection, user]);
 
   // Update internal state when initialValue changes
   useEffect(() => {
@@ -91,9 +133,14 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                 <Maximize2 className="h-4 w-4" />
               )}
             </Button>
-            <Button variant="outline" size="sm" onClick={handleSave}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleSave}
+              disabled={isSaving}
+            >
               <Save className="h-4 w-4 mr-2" />
-              Save (⌘S)
+              {isSaving ? 'Saving...' : 'Save (⌘S)'}
             </Button>
           </div>
         </div>
