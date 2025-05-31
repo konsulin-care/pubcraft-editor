@@ -1,16 +1,18 @@
+
 #!/bin/sh
 
 # Generate env.js dynamically
 cat <<EOF > /app/dist/env.js
 window.env = {
   VITE_GITHUB_CLIENT_ID: "${VITE_GITHUB_CLIENT_ID}",
+  VITE_GITHUB_TOKEN_URL: "${VITE_GITHUB_TOKEN_URL:-https://github.com/login/oauth/access_token}",
   VITE_ORCID_CLIENT_ID: "${VITE_ORCID_CLIENT_ID}",
-  VITE_ORCID_PRODUCTION_URL: "${VITE_ORCID_PRODUCTION_URL}",
-  VITE_GITHUB_TOKEN_URL: "${VITE_GITHUB_TOKEN_URL}",
-  VITE_ORCID_TOKEN_URL: "${VITE_ORCID_TOKEN_URL}",
-  VITE_ORCID_API_URL: "${VITE_ORCID_API_URL}",
+  VITE_ORCID_PRODUCTION_URL: "${VITE_ORCID_PRODUCTION_URL:-https://orcid.org/oauth}",
+  VITE_ORCID_SANDBOX_URL: "${VITE_ORCID_SANDBOX_URL:-https://sandbox.orcid.org/oauth}",
+  VITE_ORCID_TOKEN_URL: "${VITE_ORCID_TOKEN_URL:-https://orcid.org/oauth/token}",
+  VITE_ORCID_API_URL: "${VITE_ORCID_API_URL:-https://pub.orcid.org/v3.0}",
   VITE_ORCID_REDIRECT_URI: "${VITE_ORCID_REDIRECT_URI}",
-  VITE_ORCID_SCOPE: "${VITE_ORCID_SCOPE}"
+  VITE_ORCID_SCOPE: "${VITE_ORCID_SCOPE:-/authenticate}"
 };
 EOF
 
