@@ -19,21 +19,28 @@ interface GitHubSaveButtonProps {
   disabled?: boolean;
   onSaveSuccess?: () => void;
   onConnectRepository: () => void; // New prop to open the connection modal
+  isGitHubConnected: boolean;
+  repositoryConfig: RepositoryConfig | null;
+  onLocalSave: () => void;
+  lastLocalSave: string | null;
 }
 
-const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({ 
-  markdown, 
-  metadata, 
+const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
+  markdown,
+  metadata,
   bibContent = '',
   disabled = false,
   onSaveSuccess,
-  onConnectRepository
+  onConnectRepository,
+  isGitHubConnected,
+  repositoryConfig,
+  onLocalSave,
+  lastLocalSave
 }) => {
-  const { user, github, isGitHubLinked } = useAuth();
-  const { toast } = useToast();
+ const { user, github } = useAuth();
+ const { toast } = useToast();
   
   const [showSelector, setShowSelector] = useState(false);
-  const [repositoryConfig, setRepositoryConfig] = useState<RepositoryConfig | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
   const [lastSyncUrl, setLastSyncUrl] = useState<string | null>(null);
@@ -43,12 +50,10 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
     
     setIsLoading(true);
     try {
-      const firstName = user.name.split(' ')[0];
-      
       // The repository structure is now handled by GitHubConnectionModal
       // No need to call setupRepositoryStructure here
       
-      setRepositoryConfig(config);
+      // setRepositoryConfig(config); // Removed, now passed as prop
       setShowSelector(false);
       
       toast({
@@ -74,7 +79,7 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
   const handleSaveToGitHub = async (config?: RepositoryConfig) => {
     const activeConfig = config || repositoryConfig;
     if (!github?.token || !user?.name || !activeConfig) {
-      setShowSelector(true);
+      onConnectRepository(); // Open connection modal if no active config
       return;
     }
 
@@ -89,17 +94,18 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
 
     setIsLoading(true);
     try {
+      onLocalSave(); // Save locally first
       const firstName = user.name.split(' ')[0];
       const commitMessage = `Update manuscript: ${metadata.title}`;
 
-      // Use the branch from the activeConfig, which should be the draft branch
+      // Save markdown file
       await saveFileToGitHub({
         owner: activeConfig.owner,
         repo: activeConfig.repo,
-        path: activeConfig.markdownFile, // Use the full path from config
+        path: activeConfig.markdownFile,
         content: markdown,
         message: commitMessage,
-        branch: activeConfig.branch, // Use the selected branch (draft)
+        branch: activeConfig.branch,
         token: github.token
       });
 
@@ -159,7 +165,6 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
         description: "Your manuscript has been submitted for publishing!",
       });
 
-      // Open the pull request URL
       window.open(pullRequest.html_url, '_blank');
 
     } catch (error) {
@@ -174,43 +179,66 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
     }
   };
 
-  if (!isGitHubLinked) {
-    return null;
-  }
+  const handleSaveButtonClick = () => {
+    if (isGitHubConnected && repositoryConfig) {
+      handleSaveToGitHub();
+    } else {
+      onLocalSave();
+    }
+  };
 
   return (
     <>
       <div className="flex space-x-2">
-        {repositoryConfig && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleMergeToPublish}
-            disabled={disabled || isMerging}
+        {isGitHubConnected && repositoryConfig && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMergeToPublish}
+              disabled={disabled || isMerging}
+            >
+              <GitMerge className="h-4 w-4 mr-2" />
+              {isMerging ? 'Merging...' : 'Merge'}
+            </Button>
+            
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleSaveButtonClick}
+              disabled={disabled || isLoading}
+            >
+              <Github className="h-4 w-4 mr-2" />
+              {isLoading ? 'Saving...' : 'Save'}
+            </Button>
+            
+            {lastSyncUrl && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.open(lastSyncUrl, '_blank')}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            )}
+          </>
+        )}
+
+        {!isGitHubConnected && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleSaveButtonClick}
+            disabled={disabled || isLoading}
           >
-            <GitMerge className="h-4 w-4 mr-2" />
-            {isMerging ? 'Merging...' : 'Merge'}
+            <Save className="h-4 w-4 mr-2" />
+            {isLoading ? 'Saving...' : 'Save'}
           </Button>
         )}
-        
-        <Button 
-          variant="default" 
-          size="sm" 
-          onClick={() => repositoryConfig ? handleSaveToGitHub() : onConnectRepository()}
-          disabled={disabled || isLoading}
-        >
-          <Github className="h-4 w-4 mr-2" />
-          {isLoading ? 'Syncing...' : repositoryConfig ? 'Sync' : 'Connect Repository'}
-        </Button>
-        
-        {lastSyncUrl && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => window.open(lastSyncUrl, '_blank')}
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Button>
+        {!isGitHubConnected && lastLocalSave && (
+          <span className="text-sm text-muted-foreground">
+            Last saved: {lastLocalSave}
+          </span>
         )}
       </div>
     </>

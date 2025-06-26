@@ -1,10 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
-import { GitBranchPlus, Save, Maximize2, Minimize2, Eye, Edit, LogOut } from 'lucide-react';
+import { Eye, Edit, LogOut } from 'lucide-react';
 import { ExtendedMetadata, Reference } from '@/types/metadata';
 import GitHubSaveButton from './GitHubSaveButton';
 import GitHubConnectionModal from './GitHubConnectionModal';
@@ -17,11 +17,9 @@ interface EditorHeaderProps {
   activeView: 'preview' | 'manuscript' | 'metadata' | 'bibliography';
   setActiveView: (view: 'preview' | 'manuscript' | 'metadata' | 'bibliography') => void;
   onManualSave: () => void;
-  onToggleFullscreen: () => void;
-  isFullscreen: boolean;
-  // onSyncWithGitHub: () => void; // Removed, handled internally
-  // onMergeToPublish: () => void; // Removed, handled internally
   bibContent: string; // Added bibContent
+  isGitHubConnected: boolean;
+  repositoryConfig: RepositoryConfig | null;
 }
 
 const EditorHeader: React.FC<EditorHeaderProps> = ({
@@ -31,13 +29,19 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
   activeView,
   setActiveView,
   onManualSave,
-  onToggleFullscreen,
-  isFullscreen,
-  bibContent, // Added bibContent
+  bibContent,
+  isGitHubConnected,
+  repositoryConfig,
 }) => {
   const { user, logout } = useAuth();
-  const [showGitHubConnectionModal, setShowGitHubConnectionModal] = React.useState(false);
-  const [repositoryConfig, setRepositoryConfig] = React.useState<RepositoryConfig | null>(null);
+  const [showGitHubConnectionModal, setShowGitHubConnectionModal] = useState(false);
+  const [lastLocalSave, setLastLocalSave] = useState<string | null>(null);
+
+  const handleLocalSave = () => {
+    const now = new Date().toLocaleTimeString();
+    setLastLocalSave(now);
+    onManualSave();
+  };
 
   const handleLogout = () => {
     // No unsynced changes check here, as save is now explicit and separate
@@ -74,32 +78,18 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
         {/* Merge Button (now part of GitHubSaveButton) */}
       </div>
 
-      {/* Right Corner: Save, Fullscreen, User Profile */}
+      {/* Right Corner: Save, User Profile */}
       <div className="flex items-center space-x-2">
         <GitHubSaveButton
           markdown={markdown}
           metadata={metadata}
           bibContent={bibContent}
           onConnectRepository={() => setShowGitHubConnectionModal(true)}
-          // onSaveSuccess will be handled by Editor.tsx if needed
+          isGitHubConnected={isGitHubConnected}
+          repositoryConfig={repositoryConfig}
+          onLocalSave={handleLocalSave}
+          lastLocalSave={lastLocalSave}
         />
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onManualSave}
-        >
-          <Save className="h-4 w-4 mr-2" />
-          Save
-        </Button>
-
-        <Button variant="outline" size="sm" onClick={onToggleFullscreen}>
-          {isFullscreen ? (
-            <Minimize2 className="h-4 w-4" />
-          ) : (
-            <Maximize2 className="h-4 w-4" />
-          )}
-        </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
