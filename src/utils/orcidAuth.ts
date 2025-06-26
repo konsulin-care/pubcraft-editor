@@ -1,15 +1,15 @@
-
 // ORCID OAuth configuration
 const ORCID_CONFIG = {
-  CLIENT_ID: window.env?.VITE_ORCID_CLIENT_ID || import.meta.env.VITE_ORCID_CLIENT_ID,
-  PRODUCTION_URL: window.env?.VITE_ORCID_PRODUCTION_URL || import.meta.env.VITE_ORCID_PRODUCTION_URL || 'https://orcid.org/oauth',
-  SANDBOX_URL: window.env?.VITE_ORCID_SANDBOX_URL || import.meta.env.VITE_ORCID_SANDBOX_URL || 'https://sandbox.orcid.org/oauth',
-  TOKEN_URL: window.env?.VITE_ORCID_TOKEN_URL || import.meta.env.VITE_ORCID_TOKEN_URL || 'https://orcid.org/oauth/token',
-  API_URL: window.env?.VITE_ORCID_API_URL || import.meta.env.VITE_ORCID_API_URL || 'https://pub.orcid.org/v3.0',
-  REDIRECT_URI: window.env?.VITE_ORCID_REDIRECT_URI || import.meta.env.VITE_ORCID_REDIRECT_URI || `${window.location.origin}/auth/callback`,
-  SCOPE: window.env?.VITE_ORCID_SCOPE || import.meta.env.VITE_ORCID_SCOPE || '/authenticate',
+  CLIENT_ID: window.env?.VITE_ORCID_CLIENT_ID || '',
+  PRODUCTION_URL: window.env?.VITE_ORCID_PRODUCTION_URL || 'https://orcid.org/oauth',
+  SANDBOX_URL: window.env?.VITE_ORCID_SANDBOX_URL || 'https://sandbox.orcid.org/oauth',
+  TOKEN_URL: window.env?.VITE_ORCID_TOKEN_URL || 'https://orcid.org/oauth/token',
+  API_URL: window.env?.VITE_ORCID_API_URL || 'https://pub.orcid.org/v3.0',
+  REDIRECT_URI: window.env?.VITE_ORCID_REDIRECT_URI || `${window.location.origin}/auth/callback`,
+  SCOPE: window.env?.VITE_ORCID_SCOPE || '/authenticate',
   USE_SANDBOX: false // Set to true for testing, false for production
 };
+console.log('ORCID_CONFIG:', ORCID_CONFIG);
 
 function generateCodeVerifier(): string {
   const array = new Uint8Array(32);
@@ -98,25 +98,29 @@ export async function handleOrcidCallback(code: string, state: string): Promise<
     }
 
     // Exchange code for token
+    console.log('Attempting ORCID token exchange with URL:', ORCID_CONFIG.TOKEN_URL);
+    const requestBody = new URLSearchParams({
+      client_id: ORCID_CONFIG.CLIENT_ID,
+      grant_type: 'authorization_code',
+      code: code,
+      redirect_uri: ORCID_CONFIG.REDIRECT_URI,
+      code_verifier: codeVerifier
+    });
+    console.log('ORCID token exchange request body:', requestBody.toString());
+
     const tokenResponse = await fetch(ORCID_CONFIG.TOKEN_URL, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({
-        client_id: ORCID_CONFIG.CLIENT_ID,
-        grant_type: 'authorization_code',
-        code: code,
-        redirect_uri: ORCID_CONFIG.REDIRECT_URI,
-        code_verifier: codeVerifier
-      })
+      body: requestBody
     });
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text();
-      console.error('ORCID token exchange failed:', errorData);
-      throw new Error(`ORCID token exchange failed: ${errorData}`);
+      console.error('ORCID token exchange failed:', tokenResponse.status, tokenResponse.statusText, errorData);
+      throw new Error(`ORCID token exchange failed: ${tokenResponse.status} ${tokenResponse.statusText} - ${errorData}`);
     }
 
     const tokenData = await tokenResponse.json();
@@ -133,7 +137,9 @@ export async function handleOrcidCallback(code: string, state: string): Promise<
     });
 
     if (!profileResponse.ok) {
-      throw new Error('Failed to fetch ORCID profile');
+      const errorData = await profileResponse.text();
+      console.error('ORCID profile fetch failed:', errorData);
+      throw new Error(`Failed to fetch ORCID profile: ${errorData}`);
     }
 
     const profileData = await profileResponse.json();
