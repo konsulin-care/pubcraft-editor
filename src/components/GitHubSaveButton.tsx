@@ -2,16 +2,15 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  setupRepositoryStructure,
-  commitManuscriptFiles,
-  createMergeRequest,
+import {
   generateUserBranch,
-  generateDirectoryName
-} from '@/utils/github';
+  generateDirectoryName,
+  createMergeRequest
+} from '@/utils/github/core';
+import { saveFileToGitHub } from '@/utils/github/fileOperations';
 import { Github, Save, GitMerge, ExternalLink } from 'lucide-react';
 import { ExtendedMetadata } from '@/types/metadata';
-import GitHubRepositorySelector, { type RepositoryConfig } from './GitHubRepositorySelector';
+import { type RepositoryConfig } from './GitHubRepositorySelector';
 
 interface GitHubSaveButtonProps {
   markdown: string;
@@ -19,6 +18,7 @@ interface GitHubSaveButtonProps {
   bibContent?: string;
   disabled?: boolean;
   onSaveSuccess?: () => void;
+  onConnectRepository: () => void; // New prop to open the connection modal
 }
 
 const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({ 
@@ -26,7 +26,8 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
   metadata, 
   bibContent = '',
   disabled = false,
-  onSaveSuccess 
+  onSaveSuccess,
+  onConnectRepository
 }) => {
   const { user, github, isGitHubLinked } = useAuth();
   const { toast } = useToast();
@@ -44,14 +45,8 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
     try {
       const firstName = user.name.split(' ')[0];
       
-      await setupRepositoryStructure({
-        owner: config.owner,
-        repo: config.repo,
-        userFirstName: firstName,
-        manuscriptTitle: metadata.title,
-        token: github.token,
-        createRepo: config.mode === 'new'
-      });
+      // The repository structure is now handled by GitHubConnectionModal
+      // No need to call setupRepositoryStructure here
       
       setRepositoryConfig(config);
       setShowSelector(false);
@@ -97,24 +92,37 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
       const firstName = user.name.split(' ')[0];
       const commitMessage = `Update manuscript: ${metadata.title}`;
 
-      await commitManuscriptFiles({
+      // Use the branch from the activeConfig, which should be the draft branch
+      await saveFileToGitHub({
         owner: activeConfig.owner,
         repo: activeConfig.repo,
-        manuscriptTitle: metadata.title,
-        markdownContent: markdown,
-        bibContent,
-        userFirstName: firstName,
-        commitMessage,
+        path: activeConfig.markdownFile, // Use the full path from config
+        content: markdown,
+        message: commitMessage,
+        branch: activeConfig.branch, // Use the selected branch (draft)
         token: github.token
       });
 
-      const userBranch = generateUserBranch(firstName);
-      const repoUrl = `https://github.com/${activeConfig.owner}/${activeConfig.repo}/tree/${userBranch}`;
+      // Save bibliography content if it exists
+      if (bibContent.trim()) {
+        const bibFilePath = activeConfig.markdownFile.replace('pubcraft-manuscript.md', 'pubcraft-reference.bib');
+        await saveFileToGitHub({
+          owner: activeConfig.owner,
+          repo: activeConfig.repo,
+          path: bibFilePath,
+          content: bibContent,
+          message: commitMessage,
+          branch: activeConfig.branch,
+          token: github.token
+        });
+      }
+
+      const repoUrl = `https://github.com/${activeConfig.owner}/${activeConfig.repo}/tree/${activeConfig.branch}`;
       setLastSyncUrl(repoUrl);
 
       toast({
         title: "Synced to GitHub",
-        description: `Changes saved to ${userBranch} branch`,
+        description: `Changes saved to ${activeConfig.branch} branch`,
       });
 
       onSaveSuccess?.();
@@ -188,7 +196,7 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
         <Button 
           variant="default" 
           size="sm" 
-          onClick={() => repositoryConfig ? handleSaveToGitHub() : setShowSelector(true)}
+          onClick={() => repositoryConfig ? handleSaveToGitHub() : onConnectRepository()}
           disabled={disabled || isLoading}
         >
           <Github className="h-4 w-4 mr-2" />
@@ -196,8 +204,8 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
         </Button>
         
         {lastSyncUrl && (
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="sm"
             onClick={() => window.open(lastSyncUrl, '_blank')}
           >
@@ -205,12 +213,6 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
           </Button>
         )}
       </div>
-
-      <GitHubRepositorySelector
-        isOpen={showSelector}
-        onClose={() => setShowSelector(false)}
-        onRepositorySelected={handleRepositorySelected}
-      />
     </>
   );
 };

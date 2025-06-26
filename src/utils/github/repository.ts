@@ -2,6 +2,8 @@
 import { Octokit } from 'octokit';
 import { Repository, Organization } from './types';
 
+export { Repository, Organization }; // Re-exporting types
+
 // List user repositories
 export async function listRepositories(token: string): Promise<Repository[]> {
   const octokit = new Octokit({ auth: token });
@@ -87,6 +89,60 @@ export async function createRepository({
   } catch (error) {
     console.error('Error creating repository:', error);
     throw new Error(`Failed to create repository: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// List branches for a repository
+export async function listBranches({
+  owner,
+  repo,
+  token
+}: {
+  owner: string;
+  repo: string;
+  token: string;
+}): Promise<string[]> {
+  const octokit = new Octokit({ auth: token });
+
+  try {
+    const { data } = await octokit.rest.repos.listBranches({
+      owner,
+      repo,
+      per_page: 100
+    });
+    return data.map(branch => branch.name);
+  } catch (error) {
+    console.error('Error listing branches:', error);
+    throw new Error(`Failed to list branches: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Create a branch
+export async function createBranch({
+  owner,
+  repo,
+  branch,
+  sha,
+  token
+}: {
+  owner: string;
+  repo: string;
+  branch: string;
+  sha: string;
+  token: string;
+}): Promise<void> {
+  const octokit = new Octokit({ auth: token });
+
+  try {
+    await octokit.rest.git.createRef({
+      owner,
+      repo,
+      ref: `refs/heads/${branch}`,
+      sha,
+    });
+  } catch (error) {
+    console.error(`Error creating branch ${branch}:`, error);
+    throw new Error(`Failed to create branch ${branch}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
