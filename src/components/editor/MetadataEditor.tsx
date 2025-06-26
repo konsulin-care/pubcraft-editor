@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox'; // Added Checkbox
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Added Select components
 import { FileText, User, BookOpen, Code, PlusCircle, X } from 'lucide-react'; // Added PlusCircle, X
 import * as yaml from 'js-yaml';
 import { ExtendedMetadata, Reference, AuthorMetadata, AffiliationMetadata } from '@/types/metadata'; // Added AuthorMetadata, AffiliationMetadata
@@ -36,11 +38,20 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
   };
 
   const handleAuthorChange = (index: number, field: keyof AuthorMetadata, value: any) => {
-    const updatedAuthors = (Array.isArray(metadata.author) ? [...metadata.author] : []) as AuthorMetadata[];
-    updatedAuthors[index] = {
-      ...updatedAuthors[index],
-      [field]: value
-    };
+    let updatedAuthors = (Array.isArray(metadata.author) ? [...metadata.author] : []) as AuthorMetadata[];
+    
+    if (field === 'corresponding' && value === true) {
+      // If this author is set to corresponding, uncheck others
+      updatedAuthors = updatedAuthors.map((author, i) => ({
+        ...author,
+        corresponding: i === index ? true : false
+      }));
+    } else {
+      updatedAuthors[index] = {
+        ...updatedAuthors[index],
+        [field]: value
+      };
+    }
     onChange({ ...metadata, author: updatedAuthors });
   };
 
@@ -69,9 +80,10 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
 
   const addAffiliation = () => {
     const updatedAffiliations = (Array.isArray(metadata.affiliations) ? [...metadata.affiliations] : []) as AffiliationMetadata[];
+    const newId = (updatedAffiliations.length > 0 ? Math.max(...updatedAffiliations.map(a => parseInt(a.id || '0'))) + 1 : 1).toString();
     onChange({
       ...metadata,
-      affiliations: [...updatedAffiliations, { id: '', name: '', city: '', country: '' }]
+      affiliations: [...updatedAffiliations, { id: newId, name: '', city: '', country: '' }]
     });
   };
 
@@ -254,8 +266,32 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
                             onChange={(e) => handleAuthorChange(index, 'email', e.target.value)}
                           />
                         </div>
-                        {/* Add checkbox for corresponding if needed */}
-                        {/* Add input for affiliations (refs) if needed */}
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`author-corresponding-${index}`}
+                            checked={author.corresponding || false}
+                            onCheckedChange={(checked) => handleAuthorChange(index, 'corresponding', checked)}
+                          />
+                          <Label htmlFor={`author-corresponding-${index}`}>Corresponding author</Label>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`author-affiliations-${index}`}>Affiliation</Label>
+                          <Select
+                            value={author.affiliations && author.affiliations.length > 0 ? author.affiliations[0].ref : ''}
+                            onValueChange={(value) => handleAuthorChange(index, 'affiliations', [{ ref: value }])}
+                          >
+                            <SelectTrigger id={`author-affiliations-${index}`}>
+                              <SelectValue placeholder="Select an affiliation" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(Array.isArray(metadata.affiliations) ? metadata.affiliations : []).map((affiliation) => (
+                                <SelectItem key={affiliation.id} value={affiliation.id || ''}>
+                                  {affiliation.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -279,14 +315,8 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
                         <X className="h-4 w-4" />
                       </Button>
                       <div className="space-y-2">
-                        <div>
-                          <Label htmlFor={`affiliation-id-${index}`}>ID</Label>
-                          <Input
-                            id={`affiliation-id-${index}`}
-                            value={affiliation.id || ''}
-                            onChange={(e) => handleAffiliationChange(index, 'id', e.target.value)}
-                          />
-                        </div>
+                        {/* Hidden ID field */}
+                        <Input type="hidden" id={`affiliation-id-${index}`} value={affiliation.id || ''} />
                         <div>
                           <Label htmlFor={`affiliation-name-${index}`}>Name</Label>
                           <Input

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { BookOpen, Code, Upload, PlusCircle } from 'lucide-react';
 import { Reference } from '@/types/metadata';
 import BibliographyManager from '@/components/BibliographyManager';
+import { parseBibEntry, parseBibTeX } from '@/utils/bibliography'; // Import parseBibTeX
 
 interface ReferencesEditorProps {
   references: Reference[];
@@ -21,7 +22,21 @@ const ReferencesEditor: React.FC<ReferencesEditorProps> = ({
   const [bibText, setBibText] = useState('');
   const [bibError, setBibError] = useState('');
 
-  const generateBibText = () => {
+  // Effect to sync references to bibText when references change (Form View -> BibTeX View)
+  useEffect(() => {
+    try {
+      const generatedBib = generateBibText(references);
+      if (generatedBib !== bibText) {
+        setBibText(generatedBib);
+        setBibError('');
+      }
+    } catch (error) {
+      setBibError('Error generating BibTeX from references');
+      console.error('Error generating BibTeX:', error);
+    }
+  }, [references]); // Only re-run if references change
+
+  const generateBibText = (refs: Reference[]) => {
     return references.map(ref => {
       const bibEntry = `@${ref.type}{${ref.id},
   title={${ref.title}},
@@ -52,6 +67,18 @@ const ReferencesEditor: React.FC<ReferencesEditorProps> = ({
     }).join('\n\n');
   };
 
+  const handleBibTextChange = (value: string) => {
+    setBibText(value);
+    try {
+      const parsedRefs = parseBibTeX(value);
+      onChange(parsedRefs);
+      setBibError('');
+    } catch (error) {
+      setBibError('Invalid BibTeX syntax');
+      console.error('BibTeX parsing error:', error);
+    }
+  };
+
   const addManualReference = () => {
     const newRef: Reference = {
       id: `ref_${Date.now()}`,
@@ -60,7 +87,7 @@ const ReferencesEditor: React.FC<ReferencesEditorProps> = ({
       author: 'Author Name',
       year: new Date().getFullYear().toString(),
     };
-    onChange([...references, newRef]);
+    onChange([newRef, ...references]);
   };
 
   const handleImportBibTeXFile = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,10 +96,8 @@ const ReferencesEditor: React.FC<ReferencesEditorProps> = ({
       const reader = new FileReader();
       reader.onload = (e) => {
         const content = e.target?.result as string;
-        setBibText(content);
+        handleBibTextChange(content); // Use the new handler to parse and update references
         setShowBibView(true); // Switch to BibTeX view after import
-        // TODO: Implement parsing of BibTeX content to update references state
-        // For now, just display the raw BibTeX
       };
       reader.readAsText(file);
     }
@@ -105,13 +130,6 @@ const ReferencesEditor: React.FC<ReferencesEditorProps> = ({
                     className="sr-only"
                   />
                 </label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={addManualReference}
-                >
-                  <PlusCircle className="h-4 w-4 mr-2" /> Add Reference
-                </Button>
               </div>
             </div>
 
@@ -121,7 +139,7 @@ const ReferencesEditor: React.FC<ReferencesEditorProps> = ({
                 <Textarea
                   id="bibtex-editor"
                   value={bibText}
-                  onChange={(e) => setBibText(e.target.value)}
+                  onChange={(e) => handleBibTextChange(e.target.value)}
                   className="min-h-[500px] font-mono text-sm resize-none"
                   placeholder="@article{example2024,
   title={Example Article},
