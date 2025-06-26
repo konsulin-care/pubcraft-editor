@@ -55,7 +55,7 @@ graph TD
     - `/src/utils/orcidAuth.ts`: ORCID authentication logic.
     - `/src/utils/githubAuth.ts`, `/src/utils/github/`: GitHub authentication and API interaction logic.
     - `/src/utils/storage.ts`: `localStorage` management for PWA offline capabilities.
-    - `/src/utils/bibliography.ts`: BibTeX parsing and management.
+    - `/src/utils/bibliography.ts`: BibTeX parsing, management, and includes `parseBibEntry` and `parseBibTeX` functions.
 - `/src/types/`: TypeScript type definitions (e.g., `metadata.ts`).
 
 ## Key Technical Decisions
