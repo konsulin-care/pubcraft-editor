@@ -2,7 +2,6 @@
 import { Octokit } from 'octokit';
 import { Repository, Organization } from './types';
 
-export { Repository, Organization }; // Re-exporting types
 
 // List user repositories
 export async function listRepositories(token: string): Promise<Repository[]> {
