@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MarkdownEditor from '@/components/editor/MarkdownEditor';
 import MetadataEditor from '@/components/editor/MetadataEditor';
 import LivePreview from '@/components/editor/LivePreview';
+import ReferencesEditor from '@/components/editor/ReferencesEditor'; // Ensure this is imported
 import { ExtendedMetadata, Reference } from '@/types/metadata';
-import { Eye, Edit, FileText, Settings } from 'lucide-react';
 
 interface EditorLayoutProps {
   markdown: string;
@@ -15,7 +15,10 @@ interface EditorLayoutProps {
   onMarkdownChange: (markdown: string) => void;
   onMetadataChange: (metadata: ExtendedMetadata) => void;
   onReferencesChange: (references: Reference[]) => void;
-  onManualSave: () => void;
+  onManualSave: () => void; // Still needed for MarkdownEditor's internal save logic if any
+  activeView: 'preview' | 'manuscript' | 'metadata' | 'bibliography';
+  setActiveView: (view: 'preview' | 'manuscript' | 'metadata' | 'bibliography') => void;
+  isFullscreen: boolean;
 }
 
 const EditorLayout: React.FC<EditorLayoutProps> = ({
@@ -25,84 +28,50 @@ const EditorLayout: React.FC<EditorLayoutProps> = ({
   onMarkdownChange,
   onMetadataChange,
   onReferencesChange,
-  onManualSave
+  onManualSave,
+  activeView,
+  setActiveView,
+  isFullscreen,
 }) => {
-  const [activeView, setActiveView] = useState<'preview' | 'edit' | 'metadata'>('preview');
-  const [isMobileMetadataOpen, setIsMobileMetadataOpen] = useState(false);
-
   return (
-    <div className="h-full flex flex-col lg:flex-row gap-4">
-      {/* Main Editor Area */}
-      <div className="flex-1 flex flex-col min-h-0">
-        {/* View Toggle Buttons */}
-        <div className="flex gap-2 mb-4 flex-wrap">
-          <Button
-            variant={activeView === 'preview' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setActiveView('preview')}
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            Preview
-          </Button>
-          <Button
-            variant={activeView === 'edit' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setActiveView('edit')}
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-          <Button
-            variant={activeView === 'metadata' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setActiveView('metadata')}
-            className="lg:hidden"
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            Metadata
-          </Button>
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 min-h-0">
-          {activeView === 'preview' && (
-            <LivePreview
-              markdown={markdown}
-              metadata={metadata}
-              references={references}
-            />
-          )}
-          
-          {activeView === 'edit' && (
+    <div className="h-full flex flex-col">
+      {activeView === 'preview' ? (
+        <LivePreview
+          markdown={markdown}
+          metadata={metadata}
+          references={references}
+        />
+      ) : (
+        <Tabs value={activeView} onValueChange={(value) => setActiveView(value as 'manuscript' | 'metadata' | 'bibliography')} className="flex-1 flex flex-col min-h-0">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="manuscript">Manuscript</TabsTrigger>
+            <TabsTrigger value="metadata">Metadata</TabsTrigger>
+            <TabsTrigger value="bibliography">Bibliography</TabsTrigger>
+          </TabsList>
+          <TabsContent value="manuscript" className="flex-1 min-h-0 mt-0">
             <MarkdownEditor
               initialValue={markdown}
               onChange={onMarkdownChange}
-              onSave={onManualSave}
+              onSave={onManualSave} // Keep onSave for internal MarkdownEditor logic if needed
+              isFullscreen={isFullscreen}
             />
-          )}
-          
-          {activeView === 'metadata' && (
-            <div className="lg:hidden h-full">
-              <MetadataEditor
-                metadata={metadata}
-                onChange={onMetadataChange}
-                references={references}
-                onReferencesChange={onReferencesChange}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Desktop Metadata Sidebar */}
-      <div className="hidden lg:block w-80 min-h-0">
-        <MetadataEditor
-          metadata={metadata}
-          onChange={onMetadataChange}
-          references={references}
-          onReferencesChange={onReferencesChange}
-        />
-      </div>
+          </TabsContent>
+          <TabsContent value="metadata" className="flex-1 min-h-0 mt-0">
+            <MetadataEditor
+              metadata={metadata}
+              onChange={onMetadataChange}
+              references={references}
+              onReferencesChange={onReferencesChange}
+            />
+          </TabsContent>
+          <TabsContent value="bibliography" className="flex-1 min-h-0 mt-0">
+            <ReferencesEditor
+              references={references}
+              onChange={onReferencesChange}
+            />
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 };

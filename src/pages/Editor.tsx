@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import EditorHeader from '@/components/EditorHeader';
 import EditorLayout from '@/components/editor/EditorLayout';
 import { useEditorState } from '@/hooks/useEditorState';
@@ -9,30 +9,36 @@ const Editor: React.FC = () => {
     markdown,
     metadata,
     references,
-    lastSaved,
-    isOnline,
-    hasUnsyncedChanges,
     setMarkdown,
     setMetadata,
     setReferences,
-    handleClearDraft,
     handleManualSave,
-    handleGitHubSaveSuccess
   } = useEditorState();
+
+  const [activeView, setActiveView] = useState<'preview' | 'manuscript' | 'metadata' | 'bibliography'>('preview');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const handleToggleFullscreen = () => {
+    setIsFullscreen(prev => !prev);
+    // Logic to actually go fullscreen will be handled by the component that renders the editor (e.g., MarkdownEditor)
+  };
+
+  // Removed handleSyncWithGitHub and handleMergeToPublish as they are now handled by GitHubSaveButton
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <div className="bg-white border-b shadow-sm flex-shrink-0">
         <div className="container mx-auto px-4 py-3">
           <EditorHeader
-            lastSaved={lastSaved}
-            hasUnsyncedChanges={hasUnsyncedChanges}
             markdown={markdown}
             metadata={metadata}
             references={references}
-            isOnline={isOnline}
-            onClearDraft={handleClearDraft}
-            onGitHubSaveSuccess={handleGitHubSaveSuccess}
+            activeView={activeView}
+            setActiveView={setActiveView}
+            onManualSave={handleManualSave}
+            onToggleFullscreen={handleToggleFullscreen}
+            isFullscreen={isFullscreen}
+            bibContent={references.map(ref => ref.raw).join('\n\n')} // Pass bibContent
           />
         </div>
       </div>
@@ -47,6 +53,9 @@ const Editor: React.FC = () => {
             onMetadataChange={setMetadata}
             onReferencesChange={setReferences}
             onManualSave={handleManualSave}
+            activeView={activeView}
+            setActiveView={setActiveView}
+            isFullscreen={isFullscreen}
           />
         </div>
       </div>

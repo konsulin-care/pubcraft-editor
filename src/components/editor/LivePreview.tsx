@@ -3,9 +3,8 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Eye } from 'lucide-react';
 import { ExtendedMetadata, Reference, AuthorMetadata } from '@/types/metadata';
 import 'katex/dist/katex.min.css';
 
@@ -72,7 +71,7 @@ const LivePreview: React.FC<LivePreviewProps> = ({ markdown, metadata, reference
         <div className="space-y-3">
           {references.map((ref, index) => (
             <div key={ref.id} className="text-sm">
-              <span className="font-medium">[{index + 1}]</span> {ref.author} ({ref.year}). 
+              <span className="font-medium">[{index + 1}]</span> {ref.author} ({ref.year}).
               <em className="ml-1">{ref.title}</em>
               {ref.journal && <span>. {ref.journal}</span>}
               {ref.volume && <span>, {ref.volume}</span>}
@@ -98,12 +97,6 @@ const LivePreview: React.FC<LivePreviewProps> = ({ markdown, metadata, reference
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader className="pb-3 flex-shrink-0">
-        <CardTitle className="flex items-center text-lg">
-          <Eye className="h-5 w-5 mr-2" />
-          Live Preview
-        </CardTitle>
-      </CardHeader>
       <CardContent className="flex-1 min-h-0 p-0">
         <ScrollArea className="h-full px-6 py-4">
           <div className="max-w-none">
@@ -183,8 +176,8 @@ const LivePreview: React.FC<LivePreviewProps> = ({ markdown, metadata, reference
               </div>
             ) : (
               <div className="text-center py-12">
-                <div className="text-gray-400 mb-4">
-                  <Eye className="h-12 w-12 mx-auto" />
+                <div className="text-gray-400 mb-4 text-center">
+                  {/* Placeholder for removed Eye icon */}
                 </div>
                 <p className="text-gray-500 italic text-lg">
                   Start writing to see your content preview here...

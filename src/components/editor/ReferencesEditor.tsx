@@ -1,82 +1,25 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { BookOpen, Code, Save } from 'lucide-react';
+import { BookOpen, Code, Upload, PlusCircle } from 'lucide-react';
 import { Reference } from '@/types/metadata';
 import BibliographyManager from '@/components/BibliographyManager';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { useGitHubPersistence } from '@/hooks/useGitHubPersistence';
-import { saveFileToGitHub } from '@/utils/github/fileOperations';
 
 interface ReferencesEditorProps {
   references: Reference[];
   onChange: (references: Reference[]) => void;
-  onSave?: () => void;
 }
 
 const ReferencesEditor: React.FC<ReferencesEditorProps> = ({
   references,
   onChange,
-  onSave
 }) => {
   const [showBibView, setShowBibView] = useState(false);
   const [bibText, setBibText] = useState('');
   const [bibError, setBibError] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const { toast } = useToast();
-  const { user, github } = useAuth();
-  const { connection } = useGitHubPersistence();
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      // Save to GitHub if connected
-      if (github?.token && connection && user?.name) {
-        const firstName = user.name.split(' ')[0];
-        const branch = `draft-${firstName.toLowerCase()}`;
-        const path = `draft/${connection.markdownFile}/pubcraft-reference.bib`;
-        const content = showBibView ? bibText : generateBibText();
-
-        await saveFileToGitHub({
-          owner: connection.owner,
-          repo: connection.repo,
-          path,
-          content,
-          message: 'Update references',
-          branch,
-          token: github.token
-        });
-
-        toast({
-          title: "References Saved",
-          description: "Synced to GitHub successfully",
-        });
-      } else {
-        toast({
-          title: "References Saved",
-          description: `Saved locally at ${new Date().toLocaleTimeString()}`,
-        });
-      }
-
-      if (onSave) {
-        onSave();
-      }
-    } catch (error) {
-      console.error('Save error:', error);
-      toast({
-        title: "Save Failed",
-        description: error instanceof Error ? error.message : "Failed to save references",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const generateBibText = () => {
     return references.map(ref => {
@@ -91,85 +34,96 @@ const ReferencesEditor: React.FC<ReferencesEditorProps> = ({
       if (ref.pages) additionalFields.push(`  pages={${ref.pages}}`);
       if (ref.doi) additionalFields.push(`  doi={${ref.doi}}`);
       if (ref.url) additionalFields.push(`  url={${ref.url}}`);
+      if (ref.publisher) additionalFields.push(`  publisher={${ref.publisher}}`);
+      if (ref.booktitle) additionalFields.push(`  booktitle={${ref.booktitle}}`);
+      if (ref.editor) additionalFields.push(`  editor={${ref.editor}}`);
+      if (ref.series) additionalFields.push(`  series={${ref.series}}`);
+      if (ref.address) additionalFields.push(`  address={${ref.address}}`);
+      if (ref.month) additionalFields.push(`  month={${ref.month}}`);
+      if (ref.note) additionalFields.push(`  note={${ref.note}}`);
+      if (ref.organization) additionalFields.push(`  organization={${ref.organization}}`);
+      if (ref.school) additionalFields.push(`  school={${ref.school}}`);
+      if (ref.institution) additionalFields.push(`  institution={${ref.institution}}`);
+      if (ref.chapter) additionalFields.push(`  chapter={${ref.chapter}}`);
+      if (ref.edition) additionalFields.push(`  edition={${ref.edition}}`);
+      if (ref.howpublished) additionalFields.push(`  howpublished={${ref.howpublished}}`);
       
       return bibEntry + (additionalFields.length > 0 ? ',\n' + additionalFields.join(',\n') : '') + '\n}';
     }).join('\n\n');
   };
 
-  const toggleBibView = () => {
-    if (!showBibView) {
-      setBibText(generateBibText());
-      setBibError('');
-    } else {
-      // Parse BibTeX back to references if needed
-      // For now, just toggle back to form view
-    }
-    setShowBibView(!showBibView);
-  };
-
-  const handleBibChange = (value: string) => {
-    setBibText(value);
-    // Basic validation - could be enhanced
-    try {
-      setBibError('');
-    } catch (error) {
-      setBibError('Invalid BibTeX format');
-    }
-  };
-
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeydown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault();
-        handleSave();
-      }
+  const addManualReference = () => {
+    const newRef: Reference = {
+      id: `ref_${Date.now()}`,
+      type: 'article',
+      title: 'New Reference',
+      author: 'Author Name',
+      year: new Date().getFullYear().toString(),
     };
+    onChange([...references, newRef]);
+  };
 
-    document.addEventListener('keydown', handleKeydown);
-    return () => document.removeEventListener('keydown', handleKeydown);
-  }, [references, bibText, showBibView, github, connection, user]);
+  const handleImportBibTeXFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        setBibText(content);
+        setShowBibView(true); // Switch to BibTeX view after import
+        // TODO: Implement parsing of BibTeX content to update references state
+        // For now, just display the raw BibTeX
+      };
+      reader.readAsText(file);
+    }
+  };
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader className="pb-3 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center text-lg">
-            <BookOpen className="h-5 w-5 mr-2" />
-            References
-          </CardTitle>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleBibView}
-            >
-              <Code className="h-4 w-4 mr-2" />
-              {showBibView ? 'Form View' : 'BibTeX View'}
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save (⌘S)'}
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      
       <CardContent className="flex-1 min-h-0 p-4">
         <ScrollArea className="h-full pr-4">
-          {showBibView ? (
-            <div className="space-y-2">
-              <Label>BibTeX References</Label>
-              <Textarea
-                value={bibText}
-                onChange={(e) => handleBibChange(e.target.value)}
-                className="min-h-[500px] font-mono text-sm resize-none"
-                placeholder="@article{example2024,
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Bibliography Editor</h3>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowBibView(!showBibView)}
+                >
+                  <Code className="h-4 w-4 mr-2" />
+                  {showBibView ? 'Form View' : 'BibTeX View'}
+                </Button>
+                <label htmlFor="bibtex-upload" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 cursor-pointer">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import BibTeX
+                  <input
+                    id="bibtex-upload"
+                    type="file"
+                    accept=".bib"
+                    onChange={handleImportBibTeXFile}
+                    className="sr-only"
+                  />
+                </label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={addManualReference}
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" /> Add Reference
+                </Button>
+              </div>
+            </div>
+
+            {showBibView ? (
+              <div className="space-y-2">
+                <Label htmlFor="bibtex-editor">BibTeX References</Label>
+                <Textarea
+                  id="bibtex-editor"
+                  value={bibText}
+                  onChange={(e) => setBibText(e.target.value)}
+                  className="min-h-[500px] font-mono text-sm resize-none"
+                  placeholder="@article{example2024,
   title={Example Article},
   author={Author Name},
   year={2024},
@@ -177,17 +131,25 @@ const ReferencesEditor: React.FC<ReferencesEditorProps> = ({
   volume={1},
   pages={1-10}
 }"
+                />
+                {bibError && (
+                  <p className="text-sm text-red-600">{bibError}</p>
+                )}
+              </div>
+            ) : (
+              <BibliographyManager
+                references={references}
+                onChange={onChange}
+                onAddReference={addManualReference}
+                onImportBibTeX={(content) => {
+                  // This is where the parsing logic would go if BibliographyManager was not handling it internally
+                  // For now, just set the bibText and show the view
+                  setBibText(content);
+                  setShowBibView(true);
+                }}
               />
-              {bibError && (
-                <p className="text-sm text-red-600">{bibError}</p>
-              )}
-            </div>
-          ) : (
-            <BibliographyManager
-              references={references}
-              onChange={onChange}
-            />
-          )}
+            )}
+          </div>
         </ScrollArea>
       </CardContent>
     </Card>

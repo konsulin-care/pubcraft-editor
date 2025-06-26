@@ -8,6 +8,7 @@ interface User {
   accessToken: string;
   login?: string;
   avatar_url?: string;
+  profilePicture?: string; // Added profilePicture
 }
 
 interface GitHubAccount {

@@ -1,48 +1,84 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, User, BookOpen, Code, Save } from 'lucide-react';
+import { FileText, User, BookOpen, Code, PlusCircle, X } from 'lucide-react'; // Added PlusCircle, X
 import * as yaml from 'js-yaml';
-import { ExtendedMetadata, Reference } from '@/types/metadata';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { useGitHubPersistence } from '@/hooks/useGitHubPersistence';
-import { saveFileToGitHub, generateMetadataYaml } from '@/utils/github/fileOperations';
+import { ExtendedMetadata, Reference, AuthorMetadata, AffiliationMetadata } from '@/types/metadata'; // Added AuthorMetadata, AffiliationMetadata
 
 interface MetadataEditorProps {
   metadata: ExtendedMetadata;
   onChange: (metadata: ExtendedMetadata) => void;
   references?: Reference[];
   onReferencesChange?: (references: Reference[]) => void;
-  onSave?: () => void;
 }
 
-const MetadataEditor: React.FC<MetadataEditorProps> = ({ 
-  metadata, 
-  onChange, 
+const MetadataEditor: React.FC<MetadataEditorProps> = ({
+  metadata,
+  onChange,
   references = [],
   onReferencesChange,
-  onSave
 }) => {
   const [showYamlView, setShowYamlView] = useState(false);
   const [yamlText, setYamlText] = useState('');
   const [yamlError, setYamlError] = useState('');
   const [hasUserModifiedYaml, setHasUserModifiedYaml] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const { toast } = useToast();
-  const { user, github } = useAuth();
-  const { connection } = useGitHubPersistence();
 
   const handleFieldChange = (field: keyof ExtendedMetadata, value: any) => {
     onChange({
       ...metadata,
       [field]: value
     });
+  };
+
+  const handleAuthorChange = (index: number, field: keyof AuthorMetadata, value: any) => {
+    const updatedAuthors = (Array.isArray(metadata.author) ? [...metadata.author] : []) as AuthorMetadata[];
+    updatedAuthors[index] = {
+      ...updatedAuthors[index],
+      [field]: value
+    };
+    onChange({ ...metadata, author: updatedAuthors });
+  };
+
+  const addAuthor = () => {
+    const updatedAuthors = (Array.isArray(metadata.author) ? [...metadata.author] : []) as AuthorMetadata[];
+    onChange({
+      ...metadata,
+      author: [...updatedAuthors, { name: '', corresponding: false, email: '', affiliations: [] }]
+    });
+  };
+
+  const removeAuthor = (index: number) => {
+    const updatedAuthors = (Array.isArray(metadata.author) ? [...metadata.author] : []) as AuthorMetadata[];
+    updatedAuthors.splice(index, 1);
+    onChange({ ...metadata, author: updatedAuthors });
+  };
+
+  const handleAffiliationChange = (index: number, field: keyof AffiliationMetadata, value: any) => {
+    const updatedAffiliations = (Array.isArray(metadata.affiliations) ? [...metadata.affiliations] : []) as AffiliationMetadata[];
+    updatedAffiliations[index] = {
+      ...updatedAffiliations[index],
+      [field]: value
+    };
+    onChange({ ...metadata, affiliations: updatedAffiliations });
+  };
+
+  const addAffiliation = () => {
+    const updatedAffiliations = (Array.isArray(metadata.affiliations) ? [...metadata.affiliations] : []) as AffiliationMetadata[];
+    onChange({
+      ...metadata,
+      affiliations: [...updatedAffiliations, { id: '', name: '', city: '', country: '' }]
+    });
+  };
+
+  const removeAffiliation = (index: number) => {
+    const updatedAffiliations = (Array.isArray(metadata.affiliations) ? [...metadata.affiliations] : []) as AffiliationMetadata[];
+    updatedAffiliations.splice(index, 1);
+    onChange({ ...metadata, affiliations: updatedAffiliations });
   };
 
   const generateDefaultYaml = () => {
@@ -68,62 +104,9 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
     return yaml.dump(defaultMetadata, { indent: 2 });
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      if (github?.token && connection && user?.name) {
-        const firstName = user.name.split(' ')[0];
-        const branch = `draft-${firstName.toLowerCase()}`;
-        const path = `draft/${connection.markdownFile}/metadata.yml`;
-        const content = generateMetadataYaml(metadata);
+  // Removed handleSave function and related state/hooks
 
-        await saveFileToGitHub({
-          owner: connection.owner,
-          repo: connection.repo,
-          path,
-          content,
-          message: 'Update metadata',
-          branch,
-          token: github.token
-        });
-
-        toast({
-          title: "Metadata Saved",
-          description: "Synced to GitHub successfully",
-        });
-      } else {
-        toast({
-          title: "Metadata Saved",
-          description: `Saved locally at ${new Date().toLocaleTimeString()}`,
-        });
-      }
-
-      if (onSave) {
-        onSave();
-      }
-    } catch (error) {
-      console.error('Save error:', error);
-      toast({
-        title: "Save Failed",
-        description: error instanceof Error ? error.message : "Failed to save metadata",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  useEffect(() => {
-    const handleKeydown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault();
-        handleSave();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeydown);
-    return () => document.removeEventListener('keydown', handleKeydown);
-  }, [metadata, github, connection, user]);
+  // Removed useEffect for keyboard shortcut
 
   const toggleYamlView = () => {
     if (!showYamlView) {
@@ -174,16 +157,189 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
     if (typeof metadata.author === 'string') {
       return metadata.author;
     }
-    return Array.isArray(metadata.author) 
+    return Array.isArray(metadata.author)
       ? metadata.author.map(a => a.name).join(', ')
       : '';
   };
 
-  // UI rendering logic omitted here (identical to your working version)...
-
   return (
     <Card className="h-full flex flex-col">
-      {/* The rest of the JSX rendering logic remains as-is (already complete and structured properly) */}
+      <CardContent className="flex-1 min-h-0 p-4">
+        <ScrollArea className="h-full pr-4">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Metadata Editor</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleYamlView}
+              >
+                <Code className="h-4 w-4 mr-2" />
+                {showYamlView ? 'Form View' : 'YAML View'}
+              </Button>
+            </div>
+
+            {showYamlView ? (
+              <div className="space-y-2">
+                <Label htmlFor="yaml-editor">YAML Header</Label>
+                <Textarea
+                  id="yaml-editor"
+                  value={yamlText}
+                  onChange={(e) => handleYamlChange(e.target.value)}
+                  className="min-h-[500px] font-mono text-sm resize-none"
+                  placeholder={generateDefaultYaml()}
+                />
+                {yamlError && (
+                  <p className="text-sm text-red-600">{yamlError}</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    value={metadata.title || ''}
+                    onChange={(e) => handleFieldChange('title', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="subtitle">Subtitle</Label>
+                  <Input
+                    id="subtitle"
+                    value={metadata.subtitle || ''}
+                    onChange={(e) => handleFieldChange('subtitle', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="abstract">Abstract</Label>
+                  <Textarea
+                    id="abstract"
+                    value={metadata.abstract || ''}
+                    onChange={(e) => handleFieldChange('abstract', e.target.value)}
+                    className="min-h-[100px]"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Author(s)</Label>
+                    <Button variant="outline" size="sm" onClick={addAuthor}>
+                      <PlusCircle className="h-4 w-4 mr-2" /> Add Author
+                    </Button>
+                  </div>
+                  {(Array.isArray(metadata.author) ? metadata.author : []).map((author, index) => (
+                    <div key={index} className="border p-4 rounded-md mb-4 relative">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={() => removeAuthor(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      <div className="space-y-2">
+                        <div>
+                          <Label htmlFor={`author-name-${index}`}>Name</Label>
+                          <Input
+                            id={`author-name-${index}`}
+                            value={author.name || ''}
+                            onChange={(e) => handleAuthorChange(index, 'name', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`author-email-${index}`}>Email</Label>
+                          <Input
+                            id={`author-email-${index}`}
+                            value={author.email || ''}
+                            onChange={(e) => handleAuthorChange(index, 'email', e.target.value)}
+                          />
+                        </div>
+                        {/* Add checkbox for corresponding if needed */}
+                        {/* Add input for affiliations (refs) if needed */}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Affiliations</Label>
+                    <Button variant="outline" size="sm" onClick={addAffiliation}>
+                      <PlusCircle className="h-4 w-4 mr-2" /> Add Affiliation
+                    </Button>
+                  </div>
+                  {(Array.isArray(metadata.affiliations) ? metadata.affiliations : []).map((affiliation, index) => (
+                    <div key={index} className="border p-4 rounded-md mb-4 relative">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={() => removeAffiliation(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      <div className="space-y-2">
+                        <div>
+                          <Label htmlFor={`affiliation-id-${index}`}>ID</Label>
+                          <Input
+                            id={`affiliation-id-${index}`}
+                            value={affiliation.id || ''}
+                            onChange={(e) => handleAffiliationChange(index, 'id', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`affiliation-name-${index}`}>Name</Label>
+                          <Input
+                            id={`affiliation-name-${index}`}
+                            value={affiliation.name || ''}
+                            onChange={(e) => handleAffiliationChange(index, 'name', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`affiliation-city-${index}`}>City</Label>
+                          <Input
+                            id={`affiliation-city-${index}`}
+                            value={affiliation.city || ''}
+                            onChange={(e) => handleAffiliationChange(index, 'city', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`affiliation-country-${index}`}>Country</Label>
+                          <Input
+                            id={`affiliation-country-${index}`}
+                            value={affiliation.country || ''}
+                            onChange={(e) => handleAffiliationChange(index, 'country', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <Label htmlFor="funding">Funding</Label>
+                  <Input
+                    id="funding"
+                    value={metadata.funding || ''}
+                    onChange={(e) => handleFieldChange('funding', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="keywords">Keywords</Label>
+                  <Input
+                    id="keywords"
+                    value={(metadata.keywords || []).join(', ')}
+                    onChange={(e) => handleFieldChange('keywords', e.target.value.split(',').map((k: string) => k.trim()))}
+                    placeholder="Keyword 1, Keyword 2"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Separate keywords with commas.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </CardContent>
     </Card>
   );
 };
