@@ -98,58 +98,31 @@ export async function handleOrcidCallback(code: string, state: string): Promise<
     }
 
     // Exchange code for token
-    console.log('Attempting ORCID token exchange with URL:', ORCID_CONFIG.TOKEN_URL);
-    const requestBody = new URLSearchParams({
-      client_id: ORCID_CONFIG.CLIENT_ID,
-      grant_type: 'authorization_code',
-      code: code,
-      redirect_uri: ORCID_CONFIG.REDIRECT_URI,
-      code_verifier: codeVerifier
-    });
-    console.log('ORCID token exchange request body:', requestBody.toString());
-
     const tokenResponse = await fetch(ORCID_CONFIG.TOKEN_URL, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: requestBody
+      body: new URLSearchParams({
+        client_id: ORCID_CONFIG.CLIENT_ID,
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: ORCID_CONFIG.REDIRECT_URI,
+        code_verifier: codeVerifier
+      })
     });
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text();
-      console.error('ORCID token exchange failed:', tokenResponse.status, tokenResponse.statusText, errorData);
-      throw new Error(`ORCID token exchange failed: ${tokenResponse.status} ${tokenResponse.statusText} - ${errorData}`);
+      console.error('ORCID token exchange failed:', errorData);
+      throw new Error(`ORCID token exchange failed: ${errorData}`);
     }
 
     const tokenData = await tokenResponse.json();
-    const { access_token, orcid } = tokenData;
+    const { access_token, orcid, name, email } = tokenData; // Expecting name and email from webhook
 
     console.log('ORCID token exchange successful, ORCID ID:', orcid);
-
-    // Fetch user profile information
-    const profileResponse = await fetch(`${ORCID_CONFIG.API_URL}/${orcid}/person`, {
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${access_token}`
-      }
-    });
-
-    if (!profileResponse.ok) {
-      const errorData = await profileResponse.text();
-      console.error('ORCID profile fetch failed:', errorData);
-      throw new Error(`Failed to fetch ORCID profile: ${errorData}`);
-    }
-
-    const profileData = await profileResponse.json();
-    
-    // Extract user information
-    const name = profileData.name ? 
-      `${profileData.name['given-names']?.value || ''} ${profileData.name['family-name']?.value || ''}`.trim() :
-      'ORCID User';
-    
-    const email = profileData.emails?.email?.[0]?.email || '';
 
     // Clean up temporary storage
     localStorage.removeItem('orcid_code_verifier');
@@ -157,9 +130,9 @@ export async function handleOrcidCallback(code: string, state: string): Promise<
 
     return {
       id: orcid,
-      name: name,
+      name: name || 'ORCID User', // Use name from webhook, or default
       orcid: orcid,
-      email: email,
+      email: email || '', // Use email from webhook, or default
       accessToken: access_token
     };
   } catch (error) {
