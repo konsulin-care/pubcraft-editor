@@ -1,4 +1,4 @@
-import { Reference } from '@/types/metadata';
+import { Reference, CitationKeyManagement } from '@/types/metadata';
 
 export function generateBibContent(references: Reference[]): string {
   if (!references || references.length === 0) {
@@ -52,11 +52,11 @@ export const parseBibEntry = (entry: string): Reference | null => {
   const editionMatch = entry.match(/edition\s*=\s*[{"](.*?)["}]/i);
   const howpublishedMatch = entry.match(/howpublished\s*=\s*[{"](.*?)["}]/i);
 
-
   if (!typeMatch || !titleMatch || !authorMatch) return null;
 
   return {
     id: typeMatch[2].trim(),
+    key: typeMatch[2].trim(),
     type: typeMatch[1],
     title: titleMatch[1],
     author: authorMatch[1],
@@ -84,13 +84,95 @@ export const parseBibEntry = (entry: string): Reference | null => {
 };
 
 export const parseBibTeX = (bibtex: string): Reference[] => {
-  const entries = bibtex.split('@').filter(entry => entry.trim());
+  const entries = bibtex.match(/@\w+\s*\{[^}]+\}/g) || [];
   const references: Reference[] = [];
 
   entries.forEach(entry => {
-    const ref = parseBibEntry('@' + entry);
+    const ref = parseBibEntry(entry);
     if (ref) references.push(ref);
   });
 
-  return references;
+  return references.length > 0 ? references : [];
+};
+
+export const CitationKeyManager: CitationKeyManagement = {
+  /**
+   * Extracts unique citation keys from references
+   * @param references Array of references to extract keys from
+   * @returns Array of unique citation keys
+   */
+  extractCitationKeys(references: Reference[]): string[] {
+    // Use Set to ensure uniqueness and convert back to array
+    return [...new Set(references.map(ref => ref.id.trim()))];
+  },
+
+  /**
+   * Validates a citation key
+   * @param key Citation key to validate
+   * @returns Boolean indicating if the key is valid
+   */
+  validateCitationKey(key: string): boolean {
+    // Citation key validation rules:
+    // 1. Must start with a letter
+    // 2. Can contain letters, numbers, and some punctuation
+    // 3. No spaces allowed
+    const citationKeyRegex = /^[a-zA-Z][a-zA-Z0-9_\-:\.]*$/;
+    return citationKeyRegex.test(key);
+  },
+
+  /**
+   * Generates a unique citation key based on reference details
+   * @param reference Reference to generate a key for
+   * @returns A unique, valid citation key
+   */
+  generateUniqueCitationKey(reference: Reference): string {
+    // Basic key generation strategy:
+    // AuthorLastName+Year, with incremental suffix if needed
+    const lastName = reference.author.split(',')[0]?.trim() || 'Unknown';
+    const baseKey = `${lastName}${reference.year}`;
+    
+    // Sanitize the base key to ensure it's a valid citation key
+    const sanitizedKey = baseKey
+      .replace(/[^a-zA-Z0-9_\-:\.]/g, '')
+      .toLowerCase();
+    
+    return sanitizedKey;
+  },
+
+  /**
+   * Renders a citation in markdown format
+   * @param key Citation key to render
+   * @returns Markdown-formatted citation
+   */
+  renderCitation(key: string): string {
+    return `[@${key}]`;
+  },
+
+  /**
+   * Finds a reference by its citation key
+   * @param references Array of references to search
+   * @param key Citation key to find
+   * @returns The matching reference or null
+   */
+  findReferenceByCitationKey(references: Reference[], key: string): Reference | null {
+    return references.find(ref => ref.id.toLowerCase() === key.toLowerCase()) || null;
+  },
+
+  /**
+   * Generates a formatted reference entry for display
+   * @param reference Reference to format
+   * @returns Formatted reference string
+   */
+  formatReferenceEntry(reference: Reference): string {
+    const { author, title, year, journal, volume, pages, doi } = reference;
+    let formattedRef = `${author}. "${title}". `;
+    
+    if (journal) formattedRef += `*${journal}*, `;
+    if (volume) formattedRef += `vol. ${volume}, `;
+    if (pages) formattedRef += `pp. ${pages}, `;
+    if (year) formattedRef += `${year}. `;
+    if (doi) formattedRef += `DOI: ${doi}`;
+
+    return formattedRef.trim();
+  }
 };

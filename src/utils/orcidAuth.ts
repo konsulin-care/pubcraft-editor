@@ -1,12 +1,12 @@
 // ORCID OAuth configuration
 const ORCID_CONFIG = {
-  CLIENT_ID: window.env?.VITE_ORCID_CLIENT_ID || '',
-  PRODUCTION_URL: window.env?.VITE_ORCID_PRODUCTION_URL || 'https://orcid.org/oauth',
-  SANDBOX_URL: window.env?.VITE_ORCID_SANDBOX_URL || 'https://sandbox.orcid.org/oauth',
-  TOKEN_URL: window.env?.VITE_ORCID_TOKEN_URL || 'https://orcid.org/oauth/token',
-  API_URL: window.env?.VITE_ORCID_API_URL || 'https://pub.orcid.org/v3.0',
-  REDIRECT_URI: window.env?.VITE_ORCID_REDIRECT_URI || `${window.location.origin}/auth/callback`,
-  SCOPE: window.env?.VITE_ORCID_SCOPE || '/authenticate',
+  CLIENT_ID: import.meta.env.VITE_ORCID_CLIENT_ID || '',
+  PRODUCTION_URL: import.meta.env.VITE_ORCID_PRODUCTION_URL || 'https://orcid.org/oauth',
+  SANDBOX_URL: import.meta.env.VITE_ORCID_SANDBOX_URL || 'https://sandbox.orcid.org/oauth',
+  TOKEN_URL: import.meta.env.VITE_ORCID_TOKEN_URL || 'https://orcid.org/oauth/token',
+  API_URL: import.meta.env.VITE_ORCID_API_URL || 'https://pub.orcid.org/v3.0',
+  REDIRECT_URI: import.meta.env.VITE_ORCID_REDIRECT_URI || `${window.location.origin}/auth/callback`,
+  SCOPE: import.meta.env.VITE_ORCID_SCOPE || '/authenticate',
   USE_SANDBOX: false // Set to true for testing, false for production
 };
 console.log('ORCID_CONFIG:', ORCID_CONFIG);

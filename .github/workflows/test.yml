@@ -1,0 +1,31 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [ main, devel ]
+  pull_request:
+    branches: [ main, devel ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+    
+    - name: Install dependencies
+      run: bun install
+    
+    - name: Run tests
+      run: bun test:coverage
+    
+    - name: Upload coverage
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-coverage
+        path: coverage/
