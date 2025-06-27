@@ -1,11 +1,13 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ExtendedMetadata, Reference, AuthorMetadata } from '@/types/metadata';
+import { CitationKeyManager } from '@/utils/bibliography';
 import 'katex/dist/katex.min.css';
 
 interface LivePreviewProps {
@@ -15,6 +17,8 @@ interface LivePreviewProps {
 }
 
 const LivePreview: React.FC<LivePreviewProps> = ({ markdown, metadata, references = [] }) => {
+  const [activeCitation, setActiveCitation] = useState<string | null>(null);
+
   const renderAuthor = (author: string | AuthorMetadata[]) => {
     if (typeof author === 'string') {
       return <span>{author}</span>;
@@ -87,12 +91,59 @@ const LivePreview: React.FC<LivePreviewProps> = ({ markdown, metadata, reference
     );
   };
 
-  // Process markdown to handle citations
+  // Enhanced citation processing with hover and click interactions
   const processMarkdownWithCitations = (text: string) => {
     return text.replace(/\[@([^\]]+)\]/g, (match, citationKey) => {
-      const refIndex = references.findIndex(ref => ref.id === citationKey);
-      return refIndex !== -1 ? `[${refIndex + 1}]` : match;
+      const ref = CitationKeyManager.findReferenceByCitationKey(references, citationKey);
+      const refIndex = references.findIndex(r => r.id === citationKey);
+      
+      if (ref) {
+        return `<span class="citation" data-citation-key="${citationKey}">[${refIndex + 1}]</span>`;
+      }
+      
+      return match;
     });
+  };
+
+  // Custom markdown components to handle citations
+  const citationComponent = {
+    span: ({ node, ...props }) => {
+      const citationKey = node.properties['data-citation-key'];
+      
+      if (citationKey) {
+        const ref = CitationKeyManager.findReferenceByCitationKey(references, citationKey);
+        const refIndex = references.findIndex(r => r.id === citationKey);
+
+        return (
+          <Popover
+            open={activeCitation === citationKey}
+            onOpenChange={(open) => setActiveCitation(open ? citationKey : null)}
+          >
+            <PopoverTrigger asChild>
+              <span
+                className="citation cursor-pointer hover:bg-blue-100 rounded px-1 transition-colors"
+                onClick={() => setActiveCitation(citationKey)}
+              >
+                [{refIndex + 1}]
+              </span>
+            </PopoverTrigger>
+            {ref && (
+              <PopoverContent className="w-80 p-4">
+                <div className="space-y-2">
+                  <h4 className="font-bold text-lg">Citation Details</h4>
+                  <p className="text-sm">{CitationKeyManager.formatReferenceEntry(ref)}</p>
+                  <div className="text-xs text-gray-500">
+                    Citation Key: {citationKey}
+                  </div>
+                </div>
+              </PopoverContent>
+            )}
+          </Popover>
+        );
+      }
+      
+      return <span {...props} />;
+    }
   };
 
   return (
@@ -143,10 +194,10 @@ const LivePreview: React.FC<LivePreviewProps> = ({ markdown, metadata, reference
                 )}
               </div>
             )}
-
+            
             {/* Markdown Content */}
             {markdown ? (
-              <div className="prose prose-gray max-w-none prose-headings:font-bold prose-h1:text-3xl prose-h1:mt-8 prose-h1:mb-4 prose-h2:text-2xl prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-xl prose-h3:mt-5 prose-h3:mb-3 prose-h4:text-lg prose-h4:mt-4 prose-h4:mb-2 prose-h5:text-base prose-h5:mt-3 prose-h5:mb-2 prose-h6:text-sm prose-h6:mt-3 prose-h6:mb-2 prose-p:mb-4 prose-p:leading-relaxed prose-strong:font-semibold prose-em:italic prose-ul:mb-4 prose-ol:mb-4 prose-li:mb-1 prose-blockquote:border-l-4 prose-blockquote:border-gray-300 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:my-4 prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-100 prose-pre:p-4 prose-pre:rounded-lg prose-pre:mb-4">
+              <div className="prose prose-gray max-w-none">
                 <ReactMarkdown
                   remarkPlugins={[remarkMath]}
                   rehypePlugins={[rehypeKatex]}
@@ -169,6 +220,7 @@ const LivePreview: React.FC<LivePreviewProps> = ({ markdown, metadata, reference
                     table: ({children}) => <table className="w-full border-collapse border border-gray-300 my-4">{children}</table>,
                     th: ({children}) => <th className="border border-gray-300 px-4 py-2 bg-gray-50 font-semibold text-left">{children}</th>,
                     td: ({children}) => <td className="border border-gray-300 px-4 py-2">{children}</td>,
+                    ...citationComponent
                   }}
                 >
                   {processMarkdownWithCitations(markdown)}
