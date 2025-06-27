@@ -24,6 +24,33 @@
 - GitHub API rate limits need to be considered for frequent syncing.
 - **Race Condition Management**: Critical requirement for localStorage persistence to prevent data loss on refresh.
 
+## PWA Capabilities Enhancement
+
+### Offline Persistence Improvements
+- **Advanced Service Worker Caching Strategy**
+  - Dynamic cache versioning using daily timestamps
+  - Network-First fetch strategy with intelligent caching
+  - Automatic cache cleanup mechanism
+  - Minimal performance overhead
+
+### Service Worker Technical Implementation
+- **Cache Versioning**
+  - Daily unique cache generation
+  - Prevents accumulation of stale cached resources
+  - Ensures up-to-date content delivery
+
+### Offline Experience
+- **Fallback Page Design**
+  - Custom `/offline.html` with responsive layout
+  - Clear user guidance during network disconnection
+  - Maintains application context and state
+
+### Performance Considerations
+- Immediate service worker activation
+- Graceful network failure handling
+- Comprehensive asset precaching
+- Minimal impact on application load time
+
 ## Dependencies
 
 - React
@@ -57,3 +84,8 @@
 - **Custom Hooks**: `useEditorState.ts` encapsulates complex state management with persistence
 - **Controlled Components**: MetadataEditor uses controlled inputs with proper state synchronization
 - **Reusable UI Components**: MultiSelect component provides consistent interface for complex selections
+
+### Offline Resilience Patterns
+- Intelligent network request handling
+- Seamless background updates
+- Consistent user experience across connectivity states
