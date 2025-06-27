@@ -7,7 +7,8 @@ COPY package.json bun.lockb ./
 RUN bun install --frozen-lockfile
 
 COPY . .
-RUN bun run build
+RUN --mount=type=secret,id=env,target=/app/.env \
+    bun run build
 
 # PRODUCTION
 FROM oven/bun:latest

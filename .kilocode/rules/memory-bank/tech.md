@@ -1,3 +1,60 @@
+## Environment Configuration Architecture
+
+### Runtime Environment Variable Injection
+- **Mechanism:** Dynamic `env.js` generation at container startup
+- **Location:** `entrypoint.sh`
+- **Key Features:**
+  - Sanitizes input to prevent script injection
+  - Validates environment variables
+  - Provides fallback and error handling
+
+### Environment Configuration Utility
+- **Location:** `src/utils/env-config.ts`
+- **Technologies:**
+  - Zod for type-safe validation
+  - TypeScript for type checking
+- **Configuration Sources:**
+  1. Runtime injected variables (`window.ENV`)
+  2. Vite build-time environment variables
+  3. Fallback default values
+
+### Security Considerations
+- Input sanitization
+- Strict variable validation
+- Prevention of script injection
+- Comprehensive error logging
+
+### Deployment Flexibility
+- Supports multiple configuration methods:
+  - Docker environment variables
+  - Docker Compose
+  - Kubernetes Secrets
+  - Local `.env` files
+
+### Debug and Logging
+- Debug mode with detailed configuration warnings
+- Console logging for missing or default configurations
+- Runtime error tracking
+
+## Configuration Management Constraints
+- Sensitive variables must not be baked into the image
+- Support for runtime configuration injection
+- Maintain consistent configuration across environments
+
+## Technical Dependencies
+- Runtime Configuration:
+  - Zod (v3.x)
+  - TypeScript (v5.x)
+- Deployment Tools:
+  - Docker
+  - Kubernetes
+  - Docker Compose
+
+## Performance Considerations
+- Minimal overhead for environment variable parsing
+- Lazy loading of configuration
+- Cached configuration singleton
+
 ## Technologies Used
 
 - **Frontend Framework**: React
