@@ -48,6 +48,7 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
   const [yamlText, setYamlText] = useState('');
   const [yamlError, setYamlError] = useState('');
   const [hasUserModifiedYaml, setHasUserModifiedYaml] = useState(false);
+  const [authorRoles, setAuthorRoles] = useState<{ [key: number]: string[] }>({});
 
   const handleFieldChange = (field: keyof ExtendedMetadata, value: any) => {
     onChange({
@@ -71,11 +72,28 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
         [field]: value
       };
     }
+    
+    // Update local state for roles if needed
+    if (field === 'roles') {
+      setAuthorRoles(prev => ({
+        ...prev,
+        [index]: value
+      }));
+    }
+    
     onChange({ ...metadata, author: updatedAuthors });
   };
 
   const addAuthor = () => {
     const updatedAuthors = (Array.isArray(metadata.author) ? [...metadata.author] : []) as AuthorMetadata[];
+    const newAuthorIndex = updatedAuthors.length;
+    
+    // Initialize roles for new author
+    setAuthorRoles(prev => ({
+      ...prev,
+      [newAuthorIndex]: []
+    }));
+    
     onChange({
       ...metadata,
       author: updatedAuthors ? [...updatedAuthors, { name: '', corresponding: false, email: '', affiliations: [], roles: [] }] : [{ name: '', corresponding: false, email: '', affiliations: [], roles: [] }]
@@ -85,6 +103,24 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
   const removeAuthor = (index: number) => {
     const updatedAuthors = (Array.isArray(metadata.author) ? [...metadata.author] : []) as AuthorMetadata[];
     updatedAuthors.splice(index, 1);
+    
+    // Clean up roles state
+    setAuthorRoles(prev => {
+      const newRoles = { ...prev };
+      delete newRoles[index];
+      // Reindex remaining authors
+      const reindexed: { [key: number]: string[] } = {};
+      Object.keys(newRoles).forEach(key => {
+        const keyNum = parseInt(key);
+        if (keyNum > index) {
+          reindexed[keyNum - 1] = newRoles[keyNum];
+        } else if (keyNum < index) {
+          reindexed[keyNum] = newRoles[keyNum];
+        }
+      });
+      return reindexed;
+    });
+    
     onChange({ ...metadata, author: updatedAuthors });
   };
 
@@ -189,6 +225,17 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
       : '';
   };
 
+  // Initialize author roles from metadata when component mounts or metadata changes
+  useEffect(() => {
+    if (Array.isArray(metadata.author)) {
+      const initialRoles: { [key: number]: string[] } = {};
+      metadata.author.forEach((author, index) => {
+        initialRoles[index] = author.roles || [];
+      });
+      setAuthorRoles(initialRoles);
+    }
+  }, [metadata.author]);
+
   return (
     <Card className="h-full flex flex-col">
       <CardContent className="flex-1 min-h-0 p-4">
@@ -255,7 +302,7 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
                     </Button>
                   </div>
                   {(Array.isArray(metadata.author) ? metadata.author : []).map((author, index) => {
-                    const [selectedRoles, setSelectedRoles] = useState<string[]>(author.roles || []);
+                    const selectedRoles = authorRoles[index] || author.roles || [];
 
                     return (
                       <div key={index} className="border p-4 rounded-md mb-4 relative">
@@ -340,7 +387,6 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
                                       const newRoles = isSelected
                                         ? selectedRoles.filter((r) => r !== role)
                                         : [...selectedRoles, role];
-                                      setSelectedRoles(newRoles);
                                       handleAuthorChange(index, "roles", newRoles);
                                     }}
                                   >
@@ -352,7 +398,6 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
                                           const newRoles = isSelected
                                             ? selectedRoles.filter((r) => r !== role)
                                             : [...selectedRoles, role];
-                                          setSelectedRoles(newRoles);
                                           handleAuthorChange(index, "roles", newRoles);
                                         }}
                                         id={`role-${role}`}
