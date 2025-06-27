@@ -8,12 +8,31 @@ describe('Bibliography Utilities', () => {
       const result = parseBibEntry(entry)
       
       expect(result).toEqual({
-        type: 'article',
+        id: 'key',
         key: 'key',
-        fields: {
-          title: 'Test Title',
-          author: 'John Doe'
-        }
+        type: 'article',
+        title: 'Test Title',
+        author: 'John Doe',
+        year: '',
+        journal: undefined,
+        volume: undefined,
+        number: undefined,
+        pages: undefined,
+        doi: undefined,
+        url: undefined,
+        publisher: undefined,
+        booktitle: undefined,
+        editor: undefined,
+        series: undefined,
+        address: undefined,
+        month: undefined,
+        note: undefined,
+        organization: undefined,
+        school: undefined,
+        institution: undefined,
+        chapter: undefined,
+        edition: undefined,
+        howpublished: undefined
       })
     })
 
@@ -22,13 +41,31 @@ describe('Bibliography Utilities', () => {
       const result = parseBibEntry(entry)
       
       expect(result).toEqual({
-        type: 'book',
+        id: 'book1',
         key: 'book1',
-        fields: {
-          title: 'Research Methods',
-          author: 'Jane Smith',
-          year: 2023
-        }
+        type: 'book',
+        title: 'Research Methods',
+        author: 'Jane Smith',
+        year: '2023',
+        journal: undefined,
+        volume: undefined,
+        number: undefined,
+        pages: undefined,
+        doi: undefined,
+        url: undefined,
+        publisher: undefined,
+        booktitle: undefined,
+        editor: undefined,
+        series: undefined,
+        address: undefined,
+        month: undefined,
+        note: undefined,
+        organization: undefined,
+        school: undefined,
+        institution: undefined,
+        chapter: undefined,
+        edition: undefined,
+        howpublished: undefined
       })
     })
   })
@@ -36,21 +73,65 @@ describe('Bibliography Utilities', () => {
   describe('parseBibTeX', () => {
     it('should parse multiple BibTeX entries', () => {
       const bibText = `
-        @article{key1, title="First Paper"}
-        @book{key2, title="Research Book"}
+        @article{key1, title="First Paper", author="John Doe"}
+        @book{key2, title="Research Book", author="Jane Smith"}
       `
       const result = parseBibTeX(bibText)
       
       expect(result).toHaveLength(2)
       expect(result[0]).toEqual({
-        type: 'article',
+        id: 'key1',
         key: 'key1',
-        fields: { title: 'First Paper' }
+        type: 'article',
+        title: 'First Paper',
+        author: 'John Doe',
+        year: '',
+        journal: undefined,
+        volume: undefined,
+        number: undefined,
+        pages: undefined,
+        doi: undefined,
+        url: undefined,
+        publisher: undefined,
+        booktitle: undefined,
+        editor: undefined,
+        series: undefined,
+        address: undefined,
+        month: undefined,
+        note: undefined,
+        organization: undefined,
+        school: undefined,
+        institution: undefined,
+        chapter: undefined,
+        edition: undefined,
+        howpublished: undefined
       })
       expect(result[1]).toEqual({
-        type: 'book',
+        id: 'key2',
         key: 'key2',
-        fields: { title: 'Research Book' }
+        type: 'book',
+        title: 'Research Book',
+        author: 'Jane Smith',
+        year: '',
+        journal: undefined,
+        volume: undefined,
+        number: undefined,
+        pages: undefined,
+        doi: undefined,
+        url: undefined,
+        publisher: undefined,
+        booktitle: undefined,
+        editor: undefined,
+        series: undefined,
+        address: undefined,
+        month: undefined,
+        note: undefined,
+        organization: undefined,
+        school: undefined,
+        institution: undefined,
+        chapter: undefined,
+        edition: undefined,
+        howpublished: undefined
       })
     })
   })

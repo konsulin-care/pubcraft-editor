@@ -29,6 +29,7 @@ export interface Reference {
   title: string;
   author: string;
   year: string;
+  key?: string;
   journal?: string;
   volume?: string;
   number?: string;
