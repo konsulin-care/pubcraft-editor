@@ -201,7 +201,6 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
               <GitMerge className="h-4 w-4 mr-2" />
               {isMerging ? 'Merging...' : 'Merge'}
             </Button>
-            
             <Button
               variant="default"
               size="sm"
@@ -211,7 +210,6 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
               <Github className="h-4 w-4 mr-2" />
               {isLoading ? 'Saving...' : 'Save'}
             </Button>
-            
             {lastSyncUrl && (
               <Button
                 variant="ghost"
@@ -223,7 +221,6 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
             )}
           </>
         )}
-
         {!isGitHubConnected && (
           <Button
             variant="default"
@@ -234,11 +231,6 @@ const GitHubSaveButton: React.FC<GitHubSaveButtonProps> = ({
             <Save className="h-4 w-4 mr-2" />
             {isLoading ? 'Saving...' : 'Save'}
           </Button>
-        )}
-        {!isGitHubConnected && lastLocalSave && (
-          <span className="text-sm text-muted-foreground">
-            Last saved: {lastLocalSave}
-          </span>
         )}
       </div>
     </>

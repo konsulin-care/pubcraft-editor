@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,6 +19,7 @@ interface EditorHeaderProps {
   bibContent: string; // Added bibContent
   isGitHubConnected: boolean;
   repositoryConfig: RepositoryConfig | null;
+  setRepositoryConfig: (config: RepositoryConfig | null) => void; // Add setRepositoryConfig
 }
 
 const EditorHeader: React.FC<EditorHeaderProps> = ({
@@ -32,6 +32,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
   bibContent,
   isGitHubConnected,
   repositoryConfig,
+  setRepositoryConfig, // Add setRepositoryConfig
 }) => {
   const { user, logout } = useAuth();
   const [showGitHubConnectionModal, setShowGitHubConnectionModal] = useState(false);
@@ -73,13 +74,6 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
             </>
           )}
         </Button>
-
-        {/* GitHub Sync Button (now part of GitHubSaveButton) */}
-        {/* Merge Button (now part of GitHubSaveButton) */}
-      </div>
-
-      {/* Right Corner: Save, User Profile */}
-      <div className="flex items-center space-x-2">
         <GitHubSaveButton
           markdown={markdown}
           metadata={metadata}
@@ -90,7 +84,15 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           onLocalSave={handleLocalSave}
           lastLocalSave={lastLocalSave}
         />
+      </div>
 
+      {/* Right Corner: User Profile */}
+      <div className="flex items-center space-x-2">
+        {lastLocalSave && (
+          <span className="text-sm text-muted-foreground mr-2 flex items-center">
+            Last saved: {lastLocalSave}
+          </span>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
