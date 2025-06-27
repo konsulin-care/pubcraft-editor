@@ -6,11 +6,30 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox'; // Added Checkbox
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Added Select components
-import { FileText, User, BookOpen, Code, PlusCircle, X } from 'lucide-react'; // Added PlusCircle, X
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Command, CommandInput, CommandList, CommandItem } from "@/components/ui/command"
+import { FileText, User, BookOpen, Code, PlusCircle, X } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
 import * as yaml from 'js-yaml';
-import { ExtendedMetadata, Reference, AuthorMetadata, AffiliationMetadata } from '@/types/metadata'; // Added AuthorMetadata, AffiliationMetadata
+import { ExtendedMetadata, Reference, AuthorMetadata, AffiliationMetadata } from '@/types/metadata';
+
+const roles = [
+  "Conceptualization",
+  "Data curation",
+  "Formal Analysis",
+  "Funding acquisition",
+  "Investigation",
+  "Methodology",
+  "Project administration",
+  "Resources",
+  "Software",
+  "Supervision",
+  "Validation",
+  "Visualization",
+  "Writing – original draft",
+  "Writing – review & editing",
+];
 
 interface MetadataEditorProps {
   metadata: ExtendedMetadata;
@@ -39,7 +58,7 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
 
   const handleAuthorChange = (index: number, field: keyof AuthorMetadata, value: any) => {
     let updatedAuthors = (Array.isArray(metadata.author) ? [...metadata.author] : []) as AuthorMetadata[];
-    
+
     if (field === 'corresponding' && value === true) {
       // If this author is set to corresponding, uncheck others
       updatedAuthors = updatedAuthors.map((author, i) => ({
@@ -59,7 +78,7 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
     const updatedAuthors = (Array.isArray(metadata.author) ? [...metadata.author] : []) as AuthorMetadata[];
     onChange({
       ...metadata,
-      author: [...updatedAuthors, { name: '', corresponding: false, email: '', affiliations: [] }]
+      author: updatedAuthors ? [...updatedAuthors, { name: '', corresponding: false, email: '', affiliations: [], roles: [] }] : [{ name: '', corresponding: false, email: '', affiliations: [], roles: [] }]
     });
   };
 
@@ -115,10 +134,6 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
     };
     return yaml.dump(defaultMetadata, { indent: 2 });
   };
-
-  // Removed handleSave function and related state/hooks
-
-  // Removed useEffect for keyboard shortcut
 
   const toggleYamlView = () => {
     if (!showYamlView) {
@@ -239,62 +254,127 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
                       <PlusCircle className="h-4 w-4 mr-2" /> Add Author
                     </Button>
                   </div>
-                  {(Array.isArray(metadata.author) ? metadata.author : []).map((author, index) => (
-                    <div key={index} className="border p-4 rounded-md mb-4 relative">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onClick={() => removeAuthor(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                      <div className="space-y-2">
-                        <div>
-                          <Label htmlFor={`author-name-${index}`}>Name</Label>
-                          <Input
-                            id={`author-name-${index}`}
-                            value={author.name || ''}
-                            onChange={(e) => handleAuthorChange(index, 'name', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`author-email-${index}`}>Email</Label>
-                          <Input
-                            id={`author-email-${index}`}
-                            value={author.email || ''}
-                            onChange={(e) => handleAuthorChange(index, 'email', e.target.value)}
-                          />
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`author-corresponding-${index}`}
-                            checked={author.corresponding || false}
-                            onCheckedChange={(checked) => handleAuthorChange(index, 'corresponding', checked)}
-                          />
-                          <Label htmlFor={`author-corresponding-${index}`}>Corresponding author</Label>
-                        </div>
+                  {(Array.isArray(metadata.author) ? metadata.author : []).map((author, index) => {
+                    const [selectedRoles, setSelectedRoles] = useState<string[]>(author.roles || []);
+
+                    return (
+                      <div key={index} className="border p-4 rounded-md mb-4 relative">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-2 right-2"
+                          onClick={() => removeAuthor(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                         <div className="space-y-2">
-                          <Label htmlFor={`author-affiliations-${index}`}>Affiliation</Label>
-                          <Select
-                            value={author.affiliations && author.affiliations.length > 0 ? author.affiliations[0].ref : ''}
-                            onValueChange={(value) => handleAuthorChange(index, 'affiliations', [{ ref: value }])}
-                          >
-                            <SelectTrigger id={`author-affiliations-${index}`}>
-                              <SelectValue placeholder="Select an affiliation" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(Array.isArray(metadata.affiliations) ? metadata.affiliations : []).map((affiliation) => (
-                                <SelectItem key={affiliation.id} value={affiliation.id || ''}>
-                                  {affiliation.name}
-                                </SelectItem>
+                          <div>
+                            <Label htmlFor={`author-name-${index}`}>Name</Label>
+                            <Input
+                              id={`author-name-${index}`}
+                              value={author.name || ''}
+                              onChange={(e) => handleAuthorChange(index, 'name', e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`author-email-${index}`}>Email</Label>
+                            <Input
+                              id={`author-email-${index}`}
+                              value={author.email || ''}
+                              onChange={(e) => handleAuthorChange(index, 'email', e.target.value)}
+                            />
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`author-corresponding-${index}`}
+                              checked={author.corresponding || false}
+                              onCheckedChange={(checked) => handleAuthorChange(index, 'corresponding', checked)}
+                            />
+                            <Label htmlFor={`author-corresponding-${index}`}>Corresponding author</Label>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`author-affiliations-${index}`}>Affiliations</Label>
+                            <Command>
+                              <CommandInput placeholder="Search affiliations..." />
+                              <CommandList>
+                                {(Array.isArray(metadata.affiliations) ? metadata.affiliations : []).map((affiliation) => (
+                                  <CommandItem
+                                    key={affiliation.id}
+                                    value={affiliation.id || ''}
+                                    onSelect={(value) => {
+                                      const selectedAffiliations = author.affiliations ? [...author.affiliations] : [];
+                                      const affiliationIndex = selectedAffiliations.findIndex(a => a.ref === value);
+                                      if (affiliationIndex > -1) {
+                                        selectedAffiliations.splice(affiliationIndex, 1);
+                                      } else {
+                                        selectedAffiliations.push({ ref: value });
+                                      }
+                                      handleAuthorChange(index, 'affiliations', selectedAffiliations);
+                                    }}
+                                  >
+                                    {affiliation.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandList>
+                            </Command>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {author.affiliations && author.affiliations.map((affiliation) => {
+                                const selectedAffiliation = (Array.isArray(metadata.affiliations) ? metadata.affiliations : []).find(a => a.id === affiliation.ref);
+                                return selectedAffiliation ? (
+                                  <Badge key={affiliation.ref}>{selectedAffiliation.name}</Badge>
+                                ) : null;
+                              })}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`author-roles-${index}`}>Roles</Label>
+                            <Command>
+                              <CommandInput placeholder="Search roles..." />
+                              <CommandList>
+                                {roles.map((role) => (
+                                  <CommandItem
+                                    key={role}
+                                    value={role}
+                                    onSelect={() => {
+                                      const isSelected = selectedRoles.includes(role);
+                                      const newRoles = isSelected
+                                        ? selectedRoles.filter((r) => r !== role)
+                                        : [...selectedRoles, role];
+                                      setSelectedRoles(newRoles);
+                                      handleAuthorChange(index, "roles", newRoles);
+                                    }}
+                                  >
+                                    <div className="flex items-center">
+                                      <Checkbox
+                                        checked={selectedRoles.includes(role)}
+                                        onCheckedChange={() => {
+                                          const isSelected = selectedRoles.includes(role);
+                                          const newRoles = isSelected
+                                            ? selectedRoles.filter((r) => r !== role)
+                                            : [...selectedRoles, role];
+                                          setSelectedRoles(newRoles);
+                                          handleAuthorChange(index, "roles", newRoles);
+                                        }}
+                                        id={`role-${role}`}
+                                      />
+                                      <Label htmlFor={`role-${role}`} className="ml-2">
+                                        {role}
+                                      </Label>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandList>
+                            </Command>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {selectedRoles.map((role) => (
+                                <Badge key={role}>{role}</Badge>
                               ))}
-                            </SelectContent>
-                          </Select>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 <div>
@@ -359,7 +439,6 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
                     id="keywords"
                     value={(metadata.keywords || []).join(', ')}
                     onChange={(e) => handleFieldChange('keywords', e.target.value.split(',').map((k: string) => k.trim()))}
-                    placeholder="Keyword 1, Keyword 2"
                   />
                   <p className="text-sm text-muted-foreground mt-1">
                     Separate keywords with commas.

@@ -1,6 +1,5 @@
-
 export interface AuthorMetadata {
-  name: string;
+  name?: string;
   corresponding?: boolean;
   email?: string;
   affiliations?: { ref: string }[];
