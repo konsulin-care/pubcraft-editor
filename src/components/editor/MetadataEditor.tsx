@@ -9,26 +9,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Command, CommandInput, CommandList, CommandItem } from "@/components/ui/command"
+import { MultiSelect, Option } from '@/components/ui/multi-select';
 import { FileText, User, BookOpen, Code, PlusCircle, X } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import * as yaml from 'js-yaml';
 import { ExtendedMetadata, Reference, AuthorMetadata, AffiliationMetadata } from '@/types/metadata';
 
-const roles = [
-  "Conceptualization",
-  "Data curation",
-  "Formal Analysis",
-  "Funding acquisition",
-  "Investigation",
-  "Methodology",
-  "Project administration",
-  "Resources",
-  "Software",
-  "Supervision",
-  "Validation",
-  "Visualization",
-  "Writing – original draft",
-  "Writing – review & editing",
+const roles: Option[] = [
+  { label: "Conceptualization", value: "conceptualization" },
+  { label: "Data curation", value: "data-curation" },
+  { label: "Formal Analysis", value: "formal-analysis" },
+  { label: "Funding acquisition", value: "funding-acquisition" },
+  { label: "Investigation", value: "investigation" },
+  { label: "Methodology", value: "methodology" },
+  { label: "Project administration", value: "project-administration" },
+  { label: "Resources", value: "resources" },
+  { label: "Software", value: "software" },
+  { label: "Supervision", value: "supervision" },
+  { label: "Validation", value: "validation" },
+  { label: "Visualization", value: "visualization" },
+  { label: "Writing – original draft", value: "writing-original-draft" },
+  { label: "Writing – review & editing", value: "writing-review-editing" },
 ];
 
 interface MetadataEditorProps {
@@ -135,7 +136,8 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
 
   const addAffiliation = () => {
     const updatedAffiliations = (Array.isArray(metadata.affiliations) ? [...metadata.affiliations] : []) as AffiliationMetadata[];
-    const newId = (updatedAffiliations.length > 0 ? Math.max(...updatedAffiliations.map(a => parseInt(a.id || '0'))) + 1 : 1).toString();
+    // Generate the next sequential ID based on the current length
+    const newId = (updatedAffiliations.length + 1).toString();
     onChange({
       ...metadata,
       affiliations: [...updatedAffiliations, { id: newId, name: '', city: '', country: '' }]
@@ -144,8 +146,51 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
 
   const removeAffiliation = (index: number) => {
     const updatedAffiliations = (Array.isArray(metadata.affiliations) ? [...metadata.affiliations] : []) as AffiliationMetadata[];
+    const removedAffiliationId = updatedAffiliations[index]?.id;
+    
+    // Create a mapping from old IDs to new IDs before modifying the array
+    const oldToNewIdMapping: { [oldId: string]: string } = {};
+    updatedAffiliations.forEach((affiliation, currentIndex) => {
+      if (currentIndex < index) {
+        // Affiliations before the removed one keep their current ID
+        oldToNewIdMapping[affiliation.id] = (currentIndex + 1).toString();
+      } else if (currentIndex > index) {
+        // Affiliations after the removed one get shifted down by 1
+        oldToNewIdMapping[affiliation.id] = currentIndex.toString();
+      }
+      // The removed affiliation (at index) is not included in the mapping
+    });
+    
+    // Remove the affiliation at the specified index
     updatedAffiliations.splice(index, 1);
-    onChange({ ...metadata, affiliations: updatedAffiliations });
+    
+    // Reorder affiliation IDs to be sequential
+    const reorderedAffiliations = updatedAffiliations.map((affiliation, newIndex) => ({
+      ...affiliation,
+      id: (newIndex + 1).toString()
+    }));
+    
+    // Update author affiliations to reflect the new IDs
+    let updatedAuthors = (Array.isArray(metadata.author) ? [...metadata.author] : []) as AuthorMetadata[];
+    if (removedAffiliationId) {
+      updatedAuthors = updatedAuthors.map(author => ({
+        ...author,
+        affiliations: author.affiliations?.filter(aff => aff.ref !== removedAffiliationId).map(aff => {
+          // Update references to reflect new sequential IDs using the mapping
+          const newId = oldToNewIdMapping[aff.ref];
+          if (newId) {
+            return { ...aff, ref: newId };
+          }
+          return aff;
+        }) || []
+      }));
+    }
+    
+    onChange({
+      ...metadata,
+      affiliations: reorderedAffiliations,
+      author: updatedAuthors
+    });
   };
 
   const generateDefaultYaml = () => {
@@ -341,80 +386,29 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor={`author-affiliations-${index}`}>Affiliations</Label>
-                            <Command>
-                              <CommandInput placeholder="Search affiliations..." />
-                              <CommandList>
-                                {(Array.isArray(metadata.affiliations) ? metadata.affiliations : []).map((affiliation) => (
-                                  <CommandItem
-                                    key={affiliation.id}
-                                    value={affiliation.id || ''}
-                                    onSelect={(value) => {
-                                      const selectedAffiliations = author.affiliations ? [...author.affiliations] : [];
-                                      const affiliationIndex = selectedAffiliations.findIndex(a => a.ref === value);
-                                      if (affiliationIndex > -1) {
-                                        selectedAffiliations.splice(affiliationIndex, 1);
-                                      } else {
-                                        selectedAffiliations.push({ ref: value });
-                                      }
-                                      handleAuthorChange(index, 'affiliations', selectedAffiliations);
-                                    }}
-                                  >
-                                    {affiliation.name}
-                                  </CommandItem>
-                                ))}
-                              </CommandList>
-                            </Command>
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {author.affiliations && author.affiliations.map((affiliation) => {
-                                const selectedAffiliation = (Array.isArray(metadata.affiliations) ? metadata.affiliations : []).find(a => a.id === affiliation.ref);
-                                return selectedAffiliation ? (
-                                  <Badge key={affiliation.ref}>{selectedAffiliation.name}</Badge>
-                                ) : null;
-                              })}
-                            </div>
+                            <MultiSelect
+                              options={(Array.isArray(metadata.affiliations) ? metadata.affiliations : []).map(aff => ({
+                                label: aff.name || '',
+                                value: aff.id || ''
+                              }))}
+                              selected={author.affiliations?.map(aff => aff.ref) || []}
+                              onChange={(selectedIds) => {
+                                const selectedAffiliations = selectedIds.map(id => ({ ref: id }));
+                                handleAuthorChange(index, 'affiliations', selectedAffiliations);
+                              }}
+                              placeholder="Select affiliations..."
+                            />
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor={`author-roles-${index}`}>Roles</Label>
-                            <Command>
-                              <CommandInput placeholder="Search roles..." />
-                              <CommandList>
-                                {roles.map((role) => (
-                                  <CommandItem
-                                    key={role}
-                                    value={role}
-                                    onSelect={() => {
-                                      const isSelected = selectedRoles.includes(role);
-                                      const newRoles = isSelected
-                                        ? selectedRoles.filter((r) => r !== role)
-                                        : [...selectedRoles, role];
-                                      handleAuthorChange(index, "roles", newRoles);
-                                    }}
-                                  >
-                                    <div className="flex items-center">
-                                      <Checkbox
-                                        checked={selectedRoles.includes(role)}
-                                        onCheckedChange={() => {
-                                          const isSelected = selectedRoles.includes(role);
-                                          const newRoles = isSelected
-                                            ? selectedRoles.filter((r) => r !== role)
-                                            : [...selectedRoles, role];
-                                          handleAuthorChange(index, "roles", newRoles);
-                                        }}
-                                        id={`role-${role}`}
-                                      />
-                                      <Label htmlFor={`role-${role}`} className="ml-2">
-                                        {role}
-                                      </Label>
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandList>
-                            </Command>
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {selectedRoles.map((role) => (
-                                <Badge key={role}>{role}</Badge>
-                              ))}
-                            </div>
+                            <MultiSelect
+                              options={roles}
+                              selected={selectedRoles}
+                              onChange={(newRoles) => {
+                                handleAuthorChange(index, "roles", newRoles);
+                              }}
+                              placeholder="Select roles..."
+                            />
                           </div>
                         </div>
                       </div>

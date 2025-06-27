@@ -29,7 +29,7 @@ const getDefaultMetadata = (userName?: string, userEmail?: string): ExtendedMeta
       corresponding: true,
       email: userEmail || 'user.email@mail.com',
       affiliations: [{ ref: '1' }],
-      roles: ['conceptualization', 'methodology', 'analysis', 'visualization', 'writing']
+      roles: ['Conceptualization', 'Methodology', 'Formal analysis', 'Visualization', 'Writing - Original Draft']
     }
   ],
   abstract: 'This is an abstract',
@@ -55,6 +55,8 @@ export const useEditorState = () => {
   const [lastSaved, setLastSaved] = useState<string>('');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [hasUnsyncedChanges, setHasUnsyncedChanges] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   // Auto-save hook
   useAutosave(markdown, metadata, references);
@@ -68,6 +70,7 @@ export const useEditorState = () => {
       setReferences(draft.references || []);
       setLastSaved(draft.updatedAt);
       setHasUnsyncedChanges(draft.dirty || false);
+      setDraftLoaded(true);
       toast({
         title: "Draft Loaded",
         description: "Your previous work has been restored.",
@@ -76,23 +79,33 @@ export const useEditorState = () => {
       // Set default content for new users
       setMarkdown(defaultMarkdown);
       setMetadata(getDefaultMetadata(user?.name, user?.email));
+      setDraftLoaded(false);
     }
-  }, [toast, user?.name, user?.email]);
+    setInitialLoadComplete(true);
+  }, [toast]);
 
-  // Update author when user data changes
+  // Update author when user data changes (only if no draft was loaded and initial load is complete)
   useEffect(() => {
+    if (!initialLoadComplete || draftLoaded) {
+      return; // Don't run if initial load isn't complete or if draft was loaded
+    }
+
     if (user?.name && Array.isArray(metadata.author) && metadata.author.length > 0) {
-      const updatedMetadata = { ...metadata };
-      if (Array.isArray(updatedMetadata.author)) {
-        updatedMetadata.author[0] = {
-          ...updatedMetadata.author[0],
-          name: user.name,
-          email: user.email || updatedMetadata.author[0].email
-        };
-        setMetadata(updatedMetadata);
+      // Only update if the current author name is the default placeholder
+      const currentAuthor = metadata.author[0];
+      if (currentAuthor && (currentAuthor.name === 'User Name' || !currentAuthor.name)) {
+        const updatedMetadata = { ...metadata };
+        if (Array.isArray(updatedMetadata.author)) {
+          updatedMetadata.author[0] = {
+            ...updatedMetadata.author[0],
+            name: user.name,
+            email: user.email || updatedMetadata.author[0].email
+          };
+          setMetadata(updatedMetadata);
+        }
       }
     }
-  }, [user?.name, user?.email]);
+  }, [user?.name, user?.email, metadata.author, initialLoadComplete, draftLoaded]);
 
   // Handle online/offline status
   useEffect(() => {
@@ -133,6 +146,7 @@ export const useEditorState = () => {
       setReferences([]);
       setLastSaved('');
       setHasUnsyncedChanges(false);
+      setDraftLoaded(false); // Reset draft loaded flag
       toast({
         title: "Draft Cleared",
         description: "Your draft has been cleared.",
