@@ -56,6 +56,7 @@ export const parseBibEntry = (entry: string): Reference | null => {
 
   return {
     id: typeMatch[2].trim(),
+    key: typeMatch[2].trim(),
     type: typeMatch[1],
     title: titleMatch[1],
     author: authorMatch[1],
@@ -83,15 +84,15 @@ export const parseBibEntry = (entry: string): Reference | null => {
 };
 
 export const parseBibTeX = (bibtex: string): Reference[] => {
-  const entries = bibtex.split('@').filter(entry => entry.trim());
+  const entries = bibtex.match(/@\w+\s*\{[^}]+\}/g) || [];
   const references: Reference[] = [];
 
   entries.forEach(entry => {
-    const ref = parseBibEntry('@' + entry);
+    const ref = parseBibEntry(entry);
     if (ref) references.push(ref);
   });
 
-  return references;
+  return references.length > 0 ? references : [];
 };
 
 export const CitationKeyManager: CitationKeyManagement = {
