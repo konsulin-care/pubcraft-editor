@@ -30,8 +30,7 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Update Browserslist database
-        run: bun run update-browserslist
+      # Removed unnecessary browserslist update step
       
       - name: Run tests
         run: bun test:coverage
