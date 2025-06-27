@@ -22,7 +22,7 @@ jobs:
       run: bun install
     
     - name: Run tests
-      run: bun test:coverage
+      run: bun run test:coverage
     
     - name: Upload coverage
       uses: actions/upload-artifact@v3
