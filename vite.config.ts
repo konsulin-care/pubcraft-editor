@@ -16,19 +16,12 @@ const testConfig = {
   }
 }
 
-import path from 'path'
-
 export default defineConfig(configEnv => {
   const baseConfig = {
-    plugins: [react()],
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, './src')
-      }
-    }
+    plugins: [react()]
   }
 
-  return process.env.VITEST
+  return process.env.VITEST 
     ? mergeConfig(baseConfig, testConfig)
     : baseConfig
 })
