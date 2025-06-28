@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { envConfig } from '../utils/env-config';
 
 interface User {
   id: string;
@@ -46,6 +47,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkAuthStatus = () => {
     try {
+      // Check for development authentication bypass
+      if (envConfig.VITE_BYPASS_AUTH === 'true') {
+        // Clear any existing ORCID session data to ensure bypass takes effect
+        localStorage.removeItem(STORAGE_KEYS.USER);
+        localStorage.removeItem(STORAGE_KEYS.LOGIN_TIME);
+        localStorage.removeItem(STORAGE_KEYS.CODE_VERIFIER);
+
+        const mockUser: User = {
+          id: 'dev-user-123',
+          name: 'Development User',
+          orcid: 'dev-orcid-456',
+          email: 'dev.user@example.com',
+          accessToken: 'dev-access-token',
+          login: 'devuser'
+        };
+        login(mockUser);
+        setIsLoading(false);
+        return;
+      }
+
       const storedUser = localStorage.getItem(STORAGE_KEYS.USER);
       const storedGitHub = localStorage.getItem(STORAGE_KEYS.GITHUB);
       const loginTime = localStorage.getItem(STORAGE_KEYS.LOGIN_TIME);

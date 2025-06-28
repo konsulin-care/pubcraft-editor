@@ -50,6 +50,7 @@ Pubcraft Editor supports dynamic environment configuration during deployment, al
 | `VITE_APP_NAME` | Application Name | No | `Pubcraft Editor` |
 | `VITE_APP_VERSION` | Application Version | No | `0.1.0` |
 | `VITE_DEBUG_MODE` | Enable Detailed Logging | No | `false` |
+| `VITE_BYPASS_AUTH` | Enable Development Authentication Bypass | No | `false` |
 
 ### Security Considerations
 
@@ -63,6 +64,15 @@ Pubcraft Editor supports dynamic environment configuration during deployment, al
 1. Copy `.env.template` to `.env`
 2. Fill in your configuration details
 3. Run `bun dev`
+
+### Development Authentication Bypass
+
+For local development, you can enable automatic login with a mock user:
+
+- Set `VITE_BYPASS_AUTH=true` in your `.env` file
+- This will automatically log in with a predefined development user
+- **WARNING**: Never enable this in production environments
+- Useful for testing without going through the full ORCID OAuth flow
 
 ### Troubleshooting
 

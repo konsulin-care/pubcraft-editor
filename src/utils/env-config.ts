@@ -52,6 +52,7 @@ export function loadRuntimeEnvConfig(): EnvConfig {
     VITE_APP_NAME: windowEnv.VITE_APP_NAME || import.meta.env.VITE_APP_NAME,
     VITE_APP_VERSION: windowEnv.VITE_APP_VERSION || import.meta.env.VITE_APP_VERSION,
     VITE_DEBUG_MODE: windowEnv.VITE_DEBUG_MODE || import.meta.env.VITE_DEBUG_MODE,
+    VITE_BYPASS_AUTH: windowEnv.VITE_BYPASS_AUTH || import.meta.env.VITE_BYPASS_AUTH,
     VITE_GITHUB_API_BASE_URL: windowEnv.VITE_GITHUB_API_BASE_URL || import.meta.env.VITE_GITHUB_API_BASE_URL,
     VITE_GITHUB_TOKEN_URL: windowEnv.VITE_GITHUB_TOKEN_URL || import.meta.env.VITE_GITHUB_TOKEN_URL,
     VITE_ORCID_API_BASE_URL: windowEnv.VITE_ORCID_API_BASE_URL || import.meta.env.VITE_ORCID_API_BASE_URL,
@@ -62,7 +63,7 @@ export function loadRuntimeEnvConfig(): EnvConfig {
 
   // Sanitize all values
   const sanitizedConfig = Object.fromEntries(
-    Object.entries(rawConfig).map(([key, value]) => 
+    Object.entries(rawConfig).map(([key, value]) =>
       [key, typeof value === 'string' ? sanitizeEnvValue(value) : value]
     )
   );
