@@ -42,7 +42,7 @@ generate_env_js() {
     local TEMP_FILE="/app/dist/env.js.tmp"
 
     # Predefined list of allowed environment variables with stricter validation
-    local ALLOWED_VARS="VITE_ORCID_CLIENT_ID VITE_ORCID_REDIRECT_URI VITE_GITHUB_CLIENT_ID VITE_GITHUB_REDIRECT_URI VITE_APP_NAME VITE_APP_VERSION VITE_DEBUG_MODE"
+    local ALLOWED_VARS="VITE_ORCID_CLIENT_ID VITE_ORCID_REDIRECT_URI VITE_GITHUB_CLIENT_ID VITE_GITHUB_REDIRECT_URI VITE_APP_NAME VITE_APP_VERSION VITE_DEBUG_MODE VITE_GITHUB_API_BASE_URL VITE_GITHUB_TOKEN_URL VITE_ORCID_API_BASE_URL VITE_ORCID_PRODUCTION_URL VITE_ORCID_SCOPE VITE_ORCID_TOKEN_URL VITE_BYPASS_AUTH"
 
     # Create temporary file with strict permissions
     touch "$TEMP_FILE"
@@ -65,15 +65,15 @@ generate_env_js() {
             safe_value=$(sanitize_input "$value")
             
             # Write to temp file with error tracking and additional validation
-            echo "try { 
+            echo "try {
     const sanitizedValue = '$safe_value'.trim();
     if (sanitizedValue.length > 0) {
         window.ENV['$var'] = sanitizedValue;
     } else {
         window.ENV.warnings.push('Empty value for $var');
     }
-} catch(e) { 
-    window.ENV.errors.push('Failed to set $var: ' + e.message); 
+} catch(e) {
+    window.ENV.errors.push('Failed to set $var: ' + e.message);
 }" >> "$TEMP_FILE"
         else
             # Log missing but allowed variables
@@ -97,17 +97,6 @@ generate_env_js() {
     log "Generated env.js with configuration"
 }
 
-# Inject env.js script tag if not present
-inject_env_script() {
-    local HTML_FILE="/app/dist/index.html"
-    
-    if ! grep -q "env.js" "$HTML_FILE"; then
-        # Insert env.js script before other scripts with a more specific selector
-        sed -i '/<script type="module" src="\/src\/main.tsx">/i\    <script src="/env.js" crossorigin="anonymous"></script>' "$HTML_FILE"
-        log "Injected env.js script tag into index.html"
-    fi
-}
-
 # Main execution with error handling
 main() {
     # Validate environment variables (non-fatal)
@@ -115,9 +104,6 @@ main() {
 
     # Generate dynamic configuration
     generate_env_js
-
-    # Inject script tag
-    inject_env_script
 
     # Execute original CMD
     log "Starting application"
