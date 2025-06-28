@@ -8,31 +8,12 @@ describe('Bibliography Utilities', () => {
       const result = parseBibEntry(entry)
       
       expect(result).toEqual({
-        id: 'key',
-        key: 'key',
         type: 'article',
-        title: 'Test Title',
-        author: 'John Doe',
-        year: '',
-        journal: undefined,
-        volume: undefined,
-        number: undefined,
-        pages: undefined,
-        doi: undefined,
-        url: undefined,
-        publisher: undefined,
-        booktitle: undefined,
-        editor: undefined,
-        series: undefined,
-        address: undefined,
-        month: undefined,
-        note: undefined,
-        organization: undefined,
-        school: undefined,
-        institution: undefined,
-        chapter: undefined,
-        edition: undefined,
-        howpublished: undefined
+        key: 'key',
+        fields: {
+          title: 'Test Title',
+          author: 'John Doe'
+        }
       })
     })
 
@@ -41,31 +22,13 @@ describe('Bibliography Utilities', () => {
       const result = parseBibEntry(entry)
       
       expect(result).toEqual({
-        id: 'book1',
-        key: 'book1',
         type: 'book',
-        title: 'Research Methods',
-        author: 'Jane Smith',
-        year: '2023',
-        journal: undefined,
-        volume: undefined,
-        number: undefined,
-        pages: undefined,
-        doi: undefined,
-        url: undefined,
-        publisher: undefined,
-        booktitle: undefined,
-        editor: undefined,
-        series: undefined,
-        address: undefined,
-        month: undefined,
-        note: undefined,
-        organization: undefined,
-        school: undefined,
-        institution: undefined,
-        chapter: undefined,
-        edition: undefined,
-        howpublished: undefined
+        key: 'book1',
+        fields: {
+          title: 'Research Methods',
+          author: 'Jane Smith',
+          year: 2023
+        }
       })
     })
   })
@@ -73,65 +36,21 @@ describe('Bibliography Utilities', () => {
   describe('parseBibTeX', () => {
     it('should parse multiple BibTeX entries', () => {
       const bibText = `
-        @article{key1, title="First Paper", author="John Doe"}
-        @book{key2, title="Research Book", author="Jane Smith"}
+        @article{key1, title="First Paper"}
+        @book{key2, title="Research Book"}
       `
       const result = parseBibTeX(bibText)
       
       expect(result).toHaveLength(2)
       expect(result[0]).toEqual({
-        id: 'key1',
-        key: 'key1',
         type: 'article',
-        title: 'First Paper',
-        author: 'John Doe',
-        year: '',
-        journal: undefined,
-        volume: undefined,
-        number: undefined,
-        pages: undefined,
-        doi: undefined,
-        url: undefined,
-        publisher: undefined,
-        booktitle: undefined,
-        editor: undefined,
-        series: undefined,
-        address: undefined,
-        month: undefined,
-        note: undefined,
-        organization: undefined,
-        school: undefined,
-        institution: undefined,
-        chapter: undefined,
-        edition: undefined,
-        howpublished: undefined
+        key: 'key1',
+        fields: { title: 'First Paper' }
       })
       expect(result[1]).toEqual({
-        id: 'key2',
-        key: 'key2',
         type: 'book',
-        title: 'Research Book',
-        author: 'Jane Smith',
-        year: '',
-        journal: undefined,
-        volume: undefined,
-        number: undefined,
-        pages: undefined,
-        doi: undefined,
-        url: undefined,
-        publisher: undefined,
-        booktitle: undefined,
-        editor: undefined,
-        series: undefined,
-        address: undefined,
-        month: undefined,
-        note: undefined,
-        organization: undefined,
-        school: undefined,
-        institution: undefined,
-        chapter: undefined,
-        edition: undefined,
-        howpublished: undefined
+        key: 'key2',
+        fields: { title: 'Research Book' }
       })
     })
   })
