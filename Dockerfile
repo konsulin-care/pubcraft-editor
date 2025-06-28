@@ -1,22 +1,21 @@
 # BUILD
-FROM oven/bun:latest AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json bun.lockb ./
-RUN bun install --frozen-lockfile
+COPY package*.json ./
+RUN npm ci
 
 COPY . .
-RUN --mount=type=secret,id=env,target=/app/.env \
-    bun run build
+RUN npm run build
 
 # PRODUCTION
-FROM oven/bun:latest
+FROM node:20-alpine
 
 WORKDIR /app
 
 # Install static file server
-RUN bun install -g serve
+RUN npm install -g serve
 
 # Copy built assets only
 COPY --from=builder /app/dist ./dist
