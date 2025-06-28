@@ -67,12 +67,12 @@
 - **Version Control Integration**: GitHub API
 - **Markdown Rendering**: Implied by WYSIWYG editor, likely a markdown parsing library (e.g., `marked`, `remark`)
 - **Mathematical Equation Rendering**: KaTeX
-- **Package Manager**: Bun (inferred from `bun.lockb`)
+- **Package Manager**: npm (inferred from `package-lock.json`)
 
 ## Development Setup
 
 - Node.js environment (implied by React/TypeScript/Vite)
-- Bun as package manager
+- npm as package manager
 
 ## Technical Constraints
 
