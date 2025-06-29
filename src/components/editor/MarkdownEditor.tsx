@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 interface MarkdownEditorProps {
   initialValue?: string;
   onChange: (markdown: string) => void;
+  onSave?: () => void;
   isFullscreen: boolean;
 }
 

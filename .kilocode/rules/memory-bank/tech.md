@@ -65,14 +65,15 @@
 - **Authentication**: ORCID OAuth 2.0
 - **Offline Persistence**: `localStorage` (for PWA) with race condition prevention
 - **Version Control Integration**: GitHub API
-- **Markdown Rendering**: Implied by WYSIWYG editor, likely a markdown parsing library (e.g., `marked`, `remark`)
+- **Markdown Rendering**: `react-markdown` with `remark-math` and `rehype-katex`
 - **Mathematical Equation Rendering**: KaTeX
-- **Package Manager**: Bun (inferred from `bun.lockb`)
+- **Package Manager**: npm (inferred from `package-lock.json`)
+- **Cross-Reference System**: Custom implementation using React components and `findReferenceByKey` utility.
 
 ## Development Setup
 
 - Node.js environment (implied by React/TypeScript/Vite)
-- Bun as package manager
+- npm as package manager
 
 ## Technical Constraints
 
