@@ -1,4 +1,4 @@
-**Current work focus:** Designing and implementing the cross-reference system for cited items in the live preview, with a focus on interactive citation elements and hover tooltips.
+**Current work focus:** Implemented and documented the cross-reference system for cited items in the live preview, including interactive citation elements and hover tooltips.
 
 **Recent changes:**
 - Investigated and fixed issues with `VITE_BYPASS_AUTH=true` environment variable
@@ -19,10 +19,7 @@
 - Removed one "Add Reference" button from the Bibliography tab
 
 **Next steps:**
-- Implement the interactive citation elements with hover tooltips in `LivePreview.tsx`.
-- Ensure proper parsing and lookup of references.
-- Address accessibility considerations for the new interactive elements.
-- Conduct thorough testing of the cross-reference system.
+- Conduct thorough testing of the cross-reference system to ensure full functionality and stability.
 - Verify the functionality of the Bibliography tab and ensure BibTeX import and export are working correctly.
 - Consider adding unit tests for the bibliography functionality.
 - Conduct thorough testing of the new authentication bypass mechanism.
