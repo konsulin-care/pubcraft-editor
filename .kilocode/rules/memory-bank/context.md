@@ -1,4 +1,4 @@
-**Current work focus:** Resolving authentication bypass mechanism for local development and improving environment configuration management.
+**Current work focus:** Designing and implementing the cross-reference system for cited items in the live preview, with a focus on interactive citation elements and hover tooltips.
 
 **Recent changes:**
 - Investigated and fixed issues with `VITE_BYPASS_AUTH=true` environment variable
@@ -19,7 +19,11 @@
 - Removed one "Add Reference" button from the Bibliography tab
 
 **Next steps:**
-- Verify the functionality of the Bibliography tab and ensure BibTeX import and export are working correctly
-- Consider adding unit tests for the bibliography functionality
-- Conduct thorough testing of the new authentication bypass mechanism
-- Review environment configuration management for potential improvements in security and flexibility
+- Implement the interactive citation elements with hover tooltips in `LivePreview.tsx`.
+- Ensure proper parsing and lookup of references.
+- Address accessibility considerations for the new interactive elements.
+- Conduct thorough testing of the cross-reference system.
+- Verify the functionality of the Bibliography tab and ensure BibTeX import and export are working correctly.
+- Consider adding unit tests for the bibliography functionality.
+- Conduct thorough testing of the new authentication bypass mechanism.
+- Review environment configuration management for potential improvements in security and flexibility.

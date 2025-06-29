@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MarkdownEditor from '@/components/editor/MarkdownEditor';
 import MetadataEditor from '@/components/editor/MetadataEditor';
-import LivePreview from '@/components/editor/LivePreview';
+import { LivePreview } from '@/components/editor/LivePreview';
 import ReferencesEditor from '@/components/editor/ReferencesEditor'; // Ensure this is imported
 import { ExtendedMetadata, Reference } from '@/types/metadata';
 
