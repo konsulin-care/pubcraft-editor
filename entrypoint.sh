@@ -60,6 +60,7 @@ generate_env_js() {
     # Process each allowed variable with stricter checks
     for var in $ALLOWED_VARS; do
         value=$(eval "echo \$$var")
+        log "DEBUG: Variable $var raw value: '$value'" # Added for debugging
         if [ -n "$value" ]; then
             # Enhanced sanitization
             safe_value=$(sanitize_input "$value")

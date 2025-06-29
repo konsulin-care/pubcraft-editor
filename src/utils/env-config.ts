@@ -42,6 +42,7 @@ export type EnvConfig = z.infer<typeof EnvConfigSchema>;
 export function loadRuntimeEnvConfig(): EnvConfig {
   // First, try to load from window.ENV (runtime injection)
   const windowEnv = (window as any).ENV || {};
+  console.log('[ENV-CONFIG] window.ENV:', windowEnv); // Added for debugging
 
   // Prepare raw configuration
   const rawConfig = {
@@ -60,6 +61,7 @@ export function loadRuntimeEnvConfig(): EnvConfig {
     VITE_ORCID_SCOPE: windowEnv.VITE_ORCID_SCOPE || import.meta.env.VITE_ORCID_SCOPE,
     VITE_ORCID_TOKEN_URL: windowEnv.VITE_ORCID_TOKEN_URL || import.meta.env.VITE_ORCID_TOKEN_URL
   };
+  console.log('[ENV-CONFIG] Raw Config:', rawConfig); // Added for debugging
 
   // Sanitize all values
   const sanitizedConfig = Object.fromEntries(
