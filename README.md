@@ -1,81 +1,105 @@
 # Pubcraft Editor
 
-## Environment Configuration
+## Overview
 
-### Runtime Environment Variables
+Pubcraft is a WYSIWYG markdown editor designed for decentralized scientific publishing, with advanced features for academic writing and collaboration.
 
-Pubcraft Editor supports dynamic environment configuration during deployment, allowing you to inject sensitive configuration without rebuilding the image.
+## Cross-Reference System
 
-#### Configuration Methods
+### Interactive Citations
 
-1. **Docker Deployment**
-   - Use environment variables or Docker secrets
-   ```bash
-   docker run -e VITE_GITHUB_CLIENT_ID=your_github_client_id \
-              -e VITE_ORCID_CLIENT_ID=your_orcid_client_id \
-              pubcraft-editor
-   ```
+Pubcraft introduces an advanced cross-reference system that transforms traditional markdown citations into interactive, informative elements.
 
-2. **Docker Compose**
-   - Create a `.env` file or use environment variables
-   ```yaml
-   services:
-     pubcraft:
-       environment:
-         - VITE_GITHUB_CLIENT_ID=${VITE_GITHUB_CLIENT_ID}
-         - VITE_ORCID_CLIENT_ID=${VITE_ORCID_CLIENT_ID}
-   ```
+#### Key Features
 
-3. **Kubernetes/Helm**
-   - Use ConfigMaps or Secrets
-   ```yaml
-   apiVersion: v1
-   kind: Secret
-   metadata:
-     name: pubcraft-env
-   type: Opaque
-   stringData:
-     VITE_GITHUB_CLIENT_ID: your_github_client_id
-     VITE_ORCID_CLIENT_ID: your_orcid_client_id
-   ```
+- **Dynamic Citation Rendering**: Convert `[@citation-key]` into interactive elements
+- **Hover Tooltips**: Display full reference details on hover
+- **Accessibility-First Design**: Keyboard and screen reader compatible
 
-### Environment Variables
+#### Citation Interaction Modes
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `VITE_GITHUB_CLIENT_ID` | GitHub OAuth Client ID | Yes | - |
-| `VITE_GITHUB_REDIRECT_URI` | GitHub OAuth Redirect URI | Yes | `http://localhost:5173/github/callback` |
-| `VITE_ORCID_CLIENT_ID` | ORCID OAuth Client ID | Yes | - |
-| `VITE_ORCID_REDIRECT_URI` | ORCID OAuth Redirect URI | Yes | `http://localhost:5173/orcid/callback` |
-| `VITE_APP_NAME` | Application Name | No | `Pubcraft Editor` |
-| `VITE_APP_VERSION` | Application Version | No | `0.1.0` |
-| `VITE_DEBUG_MODE` | Enable Detailed Logging | No | `false` |
-| `VITE_BYPASS_AUTH` | Enable Development Authentication Bypass | No | `false` |
+1. **Hover Interaction**
+   - Displays full reference details
+   - Provides context without leaving the current view
+   - Supports all reference types (article, book, conference, etc.)
 
-### Security Considerations
+2. **Click Interaction**
+   - Optional deep dive into reference details
+   - Potential future expansion for more comprehensive reference exploration
 
-- Never commit sensitive credentials to version control
-- Use environment-specific `.env` files
-- Utilize secret management tools in production
-- The application sanitizes and validates all environment variables
+#### Technical Implementation
 
-### Local Development
+- **Parsing Strategy**: 
+  - Uses regex `\[@([^\]]+)\]` to identify citation keys
+  - Supports flexible citation key formats
+  - Fallback mechanism for unmatched references
 
-1. Copy `.env.template` to `.env`
-2. Fill in your configuration details
-3. Run `bun dev`
+- **Reference Lookup**
+  - Advanced matching strategies
+  - Case-insensitive lookup
+  - Partial key matching
+  - Handles variations in citation key formats
 
-### Development Authentication Bypass
+#### Accessibility Considerations
 
-For local development, you can enable automatic login with a mock user:
+- Keyboard navigable citations
+- Screen reader compatible
+- WCAG 2.1 AA compliance
+- Semantic HTML roles
+- Descriptive `aria-label` attributes
 
-- Set `VITE_BYPASS_AUTH=true` in your `.env` file
-- This will automatically log in with a predefined development user
-- **WARNING**: Never enable this in production environments
-- Useful for testing without going through the full ORCID OAuth flow
+#### Performance Optimizations
 
-### Troubleshooting
+- `React.memo()` for preventing unnecessary re-renders
+- Conditional tooltip rendering
+- Lazy loading of reference details
+- Minimal computational overhead
 
-- Check browser console for environment configuration warnings
-- Ensure all required variables are set
-- Verify redirect URIs match your deployment environment
+### Supported Reference Types
+
+- Academic Articles
+- Books
+- Conference Papers
+- Technical Reports
+- Preprints
+- Theses and Dissertations
+
+## Future Enhancements
+
+- Multiple citation style support (APA, MLA, Chicago)
+- Advanced reference preview
+- External link validation
+- Comprehensive reference management
+
+## Technical Stack
+
+- React with TypeScript
+- Vite
+- Tailwind CSS
+- Shadcn UI
+- KaTeX for equation rendering
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v18+)
+- npm or yarn
+- ORCID Account
+
+### Installation
+
+```bash
+git clone https://github.com/yourusername/pubcraft-editor.git
+cd pubcraft-editor
+npm install
+npm run dev
+```
+
+## Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.

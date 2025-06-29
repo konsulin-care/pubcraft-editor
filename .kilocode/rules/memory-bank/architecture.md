@@ -92,3 +92,6 @@ graph TD
 - **Offline Data Management**: Storing and retrieving markdown content and metadata from `localStorage` and syncing with GitHub when online.
 - **Markdown Parsing & Rendering**: Correctly interpreting markdown, YAML metadata, BibTeX references, and KaTeX equations for live preview.
 - **Repository Structure Enforcement**: Ensuring the correct directory and file naming conventions within the GitHub repository.
+
+## Cross-Reference System Architecture
+For detailed architecture of the cross-reference system, including citation parsing, interactive element design, tooltip component, markdown processing, accessibility, and performance considerations, please refer to [.kilocode/rules/memory-bank/cross-reference-architecture.md](.kilocode/rules/memory-bank/cross-reference-architecture.md).
