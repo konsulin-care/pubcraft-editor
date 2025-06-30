@@ -33,7 +33,7 @@ validate_env_vars() {
 # Sanitize input to prevent potential script injection
 sanitize_input() {
     # More aggressive sanitization
-    echo "$1" | sed -E 's/[;&|`()\$\{\}]//g' | tr -d '\n\r\t' | sed 's/"/\\"/g'
+    echo "$1" | sed -E 's/[;`|]//g' | tr -d '\n\r\t' | sed 's/"/\\"/g'
 }
 
 # Generate env.js with enhanced security and error handling
