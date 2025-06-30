@@ -6,7 +6,7 @@ function sanitizeEnvValue(value: string): string {
   return value
     .replace(/<script.*?>.*?<\/script>/gi, '')
     .replace(/on\w+="[^"]*"/gi, '')
-    .replace(/[<>&'"]/g, '') // Remove potential XSS characters
+    .replace(/[<>'"]/g, '') // Remove potential XSS characters, but allow '&' for URLs
     .trim();
 }
 
