@@ -2,11 +2,11 @@ import { z } from 'zod';
 
 // Sanitization utility to prevent script injection
 function sanitizeEnvValue(value: string): string {
-  // More comprehensive sanitization
+  // Less aggressive sanitization that preserves URLs and essential characters
   return value
-    .replace(/<script.*?>.*?<\/script>/gi, '')
-    .replace(/on\w+="[^"]*"/gi, '')
-    .replace(/[<>'"]/g, '') // Remove potential XSS characters, but allow '&' for URLs
+    .replace(/<script.*?>.*?<\/script>/gi, '')  // Remove script tags
+    .replace(/on\w+="[^"]*"/gi, '')  // Remove inline event handlers
+    .replace(/javascript:/gi, '')     // Remove javascript: protocol
     .trim();
 }
 
@@ -29,10 +29,13 @@ const EnvConfigSchema = z.object({
   // API endpoints
   VITE_GITHUB_API_BASE_URL: z.string().url().default('https://api.github.com'),
   VITE_GITHUB_TOKEN_URL: z.string().url('Invalid GitHub Token URL'),
+  
+  // ORCID-related URLs with more flexible validation
   VITE_ORCID_API_BASE_URL: z.string().url().default('https://orcid.org/oauth'),
-  VITE_ORCID_PRODUCTION_URL: z.string().url('Invalid ORCID Production URL'),
+  VITE_ORCID_API_URL: z.string().url().optional(),
+  VITE_ORCID_PRODUCTION_URL: z.string().url('Invalid ORCID Production URL').optional(),
   VITE_ORCID_SCOPE: z.string().default('/authenticate'),
-  VITE_ORCID_TOKEN_URL: z.string().url('Invalid ORCID Token URL')
+  VITE_ORCID_TOKEN_URL: z.string().url('Invalid ORCID Token URL').optional()
 });
 
 // Type for environment configuration
@@ -56,21 +59,25 @@ export function loadRuntimeEnvConfig(): EnvConfig {
     VITE_GITHUB_API_BASE_URL: windowEnv.VITE_GITHUB_API_BASE_URL || import.meta.env.VITE_GITHUB_API_BASE_URL,
     VITE_GITHUB_TOKEN_URL: windowEnv.VITE_GITHUB_TOKEN_URL || import.meta.env.VITE_GITHUB_TOKEN_URL,
     VITE_ORCID_API_BASE_URL: windowEnv.VITE_ORCID_API_BASE_URL || import.meta.env.VITE_ORCID_API_BASE_URL,
+    VITE_ORCID_API_URL: windowEnv.VITE_ORCID_API_URL || import.meta.env.VITE_ORCID_API_URL,
     VITE_ORCID_PRODUCTION_URL: windowEnv.VITE_ORCID_PRODUCTION_URL || import.meta.env.VITE_ORCID_PRODUCTION_URL,
     VITE_ORCID_SCOPE: windowEnv.VITE_ORCID_SCOPE || import.meta.env.VITE_ORCID_SCOPE,
     VITE_ORCID_TOKEN_URL: windowEnv.VITE_ORCID_TOKEN_URL || import.meta.env.VITE_ORCID_TOKEN_URL
   };
 
-  // Sanitize all values
-  const sanitizedConfig = Object.fromEntries(
-    Object.entries(rawConfig).map(([key, value]) =>
-      [key, typeof value === 'string' ? sanitizeEnvValue(value) : value]
-    )
+  // Remove undefined values and sanitize
+  const filteredConfig = Object.fromEntries(
+    Object.entries(rawConfig)
+      .filter(([_, value]) => value !== undefined)
+      .map(([key, value]) => [
+        key,
+        typeof value === 'string' ? sanitizeEnvValue(value) : value
+      ])
   );
 
   try {
-    // Validate and parse configuration
-    const config = EnvConfigSchema.parse(sanitizedConfig);
+    // Validate and parse configuration with more lenient approach
+    const config = EnvConfigSchema.partial().parse(filteredConfig);
 
     // Debug logging function
     const debugLog = (...args: any[]) => {
@@ -82,12 +89,12 @@ export function loadRuntimeEnvConfig(): EnvConfig {
     debugLog('Application is running in DEBUG mode.');
     debugLog('window.ENV (Runtime Injected):', windowEnv);
     debugLog('Raw Configuration (from window.ENV or import.meta.env):', rawConfig);
-    debugLog('Sanitized Configuration:', sanitizedConfig);
+    debugLog('Filtered Configuration:', filteredConfig);
     debugLog('Parsed and Validated Environment Configuration:', config);
 
     // Log warnings for missing or default configurations in debug mode
     if (config.VITE_DEBUG_MODE === 'true') {
-      const defaultConfig = EnvConfigSchema.parse({});
+      const defaultConfig = EnvConfigSchema.partial().parse({});
       Object.entries(config).forEach(([key, value]) => {
         if (value === (defaultConfig as any)[key]) {
           console.warn(`[ENV] Using default value for ${key}`);
@@ -103,8 +110,21 @@ export function loadRuntimeEnvConfig(): EnvConfig {
     return config;
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('[ENV] Configuration Validation Error:', error.errors);
-      throw new Error('Invalid environment configuration. Please check your configuration.');
+      // Provide more detailed error context
+      const errorDetails = error.errors.map(err => ({
+        path: err.path.join('.'),
+        message: err.message,
+        code: err.code
+      }));
+      
+      console.error('[ENV] Detailed Configuration Validation Errors:', JSON.stringify(errorDetails, null, 2));
+      console.error('[ENV] Raw Configuration:', JSON.stringify(filteredConfig, null, 2));
+      
+      const errorMessage = `Invalid environment configuration.
+Errors: ${errorDetails.map(e => `${e.path}: ${e.message}`).join('; ')}
+Please verify all required environment variables are set correctly.`;
+      
+      throw new Error(errorMessage);
     }
     throw error;
   }
