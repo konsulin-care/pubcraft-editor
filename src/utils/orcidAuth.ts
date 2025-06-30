@@ -1,13 +1,13 @@
+import { envConfig } from './env-config'; // Import envConfig
+
 // ORCID OAuth configuration
 const ORCID_CONFIG = {
-  CLIENT_ID: import.meta.env.VITE_ORCID_CLIENT_ID || '',
-  PRODUCTION_URL: import.meta.env.VITE_ORCID_PRODUCTION_URL || 'https://orcid.org/oauth',
-  SANDBOX_URL: import.meta.env.VITE_ORCID_SANDBOX_URL || 'https://sandbox.orcid.org/oauth',
-  TOKEN_URL: import.meta.env.VITE_ORCID_TOKEN_URL || 'https://orcid.org/oauth/token',
-  API_URL: import.meta.env.VITE_ORCID_API_URL || 'https://pub.orcid.org/v3.0',
-  REDIRECT_URI: import.meta.env.VITE_ORCID_REDIRECT_URI || `${window.location.origin}/auth/callback`,
-  SCOPE: import.meta.env.VITE_ORCID_SCOPE || '/authenticate',
-  USE_SANDBOX: false // Set to true for testing, false for production
+  CLIENT_ID: envConfig.VITE_ORCID_CLIENT_ID,
+  PRODUCTION_URL: envConfig.VITE_ORCID_PRODUCTION_URL,
+  TOKEN_URL: envConfig.VITE_ORCID_TOKEN_URL,
+  API_URL: import.meta.env.VITE_ORCID_API_URL,
+  REDIRECT_URI: envConfig.VITE_ORCID_REDIRECT_URI,
+  SCOPE: envConfig.VITE_ORCID_SCOPE,
 };
 console.log('ORCID_CONFIG:', ORCID_CONFIG);
 
@@ -56,7 +56,7 @@ export async function initiateOrcidLogin(): Promise<void> {
     
     console.log('Initiating ORCID login with state:', state);
 
-    const baseUrl = ORCID_CONFIG.USE_SANDBOX ? ORCID_CONFIG.SANDBOX_URL : ORCID_CONFIG.PRODUCTION_URL;
+    const baseUrl = ORCID_CONFIG.PRODUCTION_URL;
     
     const params = new URLSearchParams({
       client_id: ORCID_CONFIG.CLIENT_ID,

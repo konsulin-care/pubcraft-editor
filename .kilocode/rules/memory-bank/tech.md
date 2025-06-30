@@ -4,7 +4,7 @@
 - **Mechanism:** Dynamic `env.js` generation at container startup
 - **Location:** `entrypoint.sh`
 - **Key Features:**
-  - Sanitizes input to prevent script injection
+  - Sanitizes input to prevent script injection (note: previously too aggressive, now refined)
   - Validates environment variables
   - Provides fallback and error handling
 
