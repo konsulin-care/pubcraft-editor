@@ -42,7 +42,6 @@ export type EnvConfig = z.infer<typeof EnvConfigSchema>;
 export function loadRuntimeEnvConfig(): EnvConfig {
   // First, try to load from window.ENV (runtime injection)
   const windowEnv = (window as any).ENV || {};
-  console.log('[ENV-CONFIG] window.ENV:', windowEnv); // Added for debugging
 
   // Prepare raw configuration
   const rawConfig = {
@@ -61,7 +60,6 @@ export function loadRuntimeEnvConfig(): EnvConfig {
     VITE_ORCID_SCOPE: windowEnv.VITE_ORCID_SCOPE || import.meta.env.VITE_ORCID_SCOPE,
     VITE_ORCID_TOKEN_URL: windowEnv.VITE_ORCID_TOKEN_URL || import.meta.env.VITE_ORCID_TOKEN_URL
   };
-  console.log('[ENV-CONFIG] Raw Config:', rawConfig); // Added for debugging
 
   // Sanitize all values
   const sanitizedConfig = Object.fromEntries(
@@ -73,6 +71,19 @@ export function loadRuntimeEnvConfig(): EnvConfig {
   try {
     // Validate and parse configuration
     const config = EnvConfigSchema.parse(sanitizedConfig);
+
+    // Debug logging function
+    const debugLog = (...args: any[]) => {
+      if (config.VITE_DEBUG_MODE === 'true') {
+        console.log('[DEBUG ENV]', ...args);
+      }
+    };
+
+    debugLog('Application is running in DEBUG mode.');
+    debugLog('window.ENV (Runtime Injected):', windowEnv);
+    debugLog('Raw Configuration (from window.ENV or import.meta.env):', rawConfig);
+    debugLog('Sanitized Configuration:', sanitizedConfig);
+    debugLog('Parsed and Validated Environment Configuration:', config);
 
     // Log warnings for missing or default configurations in debug mode
     if (config.VITE_DEBUG_MODE === 'true') {
