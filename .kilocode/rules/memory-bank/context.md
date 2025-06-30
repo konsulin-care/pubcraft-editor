@@ -1,11 +1,10 @@
 **Current work focus:** Implemented and documented the cross-reference system for cited items in the live preview, including interactive citation elements and hover tooltips.
 
 **Recent changes:**
-- Investigated and fixed issues with `VITE_BYPASS_AUTH=true` environment variable
-- Modified `src/utils/env-config.ts` to handle authentication bypass more robustly
-- Updated `src/contexts/AuthContext.tsx` to implement immediate user state update when bypass is enabled
-- Removed hardcoded `<script src="/env.js">` tag from `index.html`
-- Verified local deployment authentication bypass using `serve -s dist -l 8080`
+- Investigated and fixed blank white screen issue on deployment due to environment variable configuration errors.
+- Identified that the `sanitize_input` function in `entrypoint.sh` was too aggressive, stripping essential characters (like `&`) from environment variables, leading to `undefined` values during Zod validation in `src/utils/env-config.ts`.
+- Modified `entrypoint.sh` to relax the sanitization of environment variables, allowing valid characters in URLs and other complex strings.
+- Verified that `index.html` correctly loads `env.js`.
 
 **Previous work on Bibliography:**
 - Implemented two-way synchronization between the form view and BibTeX view in the Bibliography tab
@@ -22,5 +21,3 @@
 - Conduct thorough testing of the cross-reference system to ensure full functionality and stability.
 - Verify the functionality of the Bibliography tab and ensure BibTeX import and export are working correctly.
 - Consider adding unit tests for the bibliography functionality.
-- Conduct thorough testing of the new authentication bypass mechanism.
-- Review environment configuration management for potential improvements in security and flexibility.
